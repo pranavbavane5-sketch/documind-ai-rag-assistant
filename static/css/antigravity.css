@@ -1,0 +1,263 @@
+/* ==========================================================================
+   Antigravity Document Intelligence Assistant - Theme Stylesheet
+   Modern Deep Obsidian & Neon Cyan/Indigo Glassmorphism Aesthetic
+   ========================================================================== */
+
+:root {
+    --ag-bg-base: #0b0f19;
+    --ag-bg-surface: #111827;
+    --ag-bg-card: rgba(17, 24, 39, 0.85);
+    --ag-bg-elevated: #1e293b;
+    --ag-border-subtle: rgba(255, 255, 255, 0.08);
+    --ag-border-glow: rgba(0, 242, 254, 0.35);
+    
+    --ag-cyan: #00f2fe;
+    --ag-blue: #4facfe;
+    --ag-indigo: #6366f1;
+    --ag-purple: #8b5cf6;
+    
+    --ag-text-primary: #f8fafc;
+    --ag-text-secondary: #94a3b8;
+    --ag-text-muted: #64748b;
+    
+    --ag-glow-cyan: 0 0 20px rgba(0, 242, 254, 0.25);
+    --ag-glow-indigo: 0 0 25px rgba(99, 102, 241, 0.3);
+}
+
+body.antigravity-app {
+    background-color: var(--ag-bg-base);
+    color: var(--ag-text-primary);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Glassmorphism surfaces */
+.glass-panel {
+    background: var(--ag-bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--ag-border-subtle);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.glass-panel:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Antigravity glowing brand */
+.ag-brand-gradient {
+    background: linear-gradient(135deg, var(--ag-cyan) 0%, var(--ag-blue) 50%, var(--ag-indigo) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.ag-badge-cyan {
+    background: rgba(0, 242, 254, 0.12);
+    color: var(--ag-cyan);
+    border: 1px solid rgba(0, 242, 254, 0.3);
+}
+
+.ag-badge-indigo {
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.35);
+}
+
+.ag-badge-success {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+/* Drag & Drop Upload Dropzone */
+.dropzone-box {
+    border: 2px dashed rgba(99, 102, 241, 0.4);
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 12px;
+    padding: 1.8rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease-in-out;
+    position: relative;
+}
+
+.dropzone-box:hover, .dropzone-box.dragover {
+    border-color: var(--ag-cyan);
+    background: rgba(0, 242, 254, 0.06);
+    box-shadow: var(--ag-glow-cyan);
+    transform: translateY(-1px);
+}
+
+.dropzone-box input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* Uploaded Document List Items */
+.doc-card-item {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid var(--ag-border-subtle);
+    border-radius: 10px;
+    padding: 0.85rem;
+    margin-bottom: 0.65rem;
+    transition: all 0.2s ease;
+}
+
+.doc-card-item:hover {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(99, 102, 241, 0.4);
+}
+
+/* Chat Message Bubbles */
+.chat-scroll-area {
+    height: 60vh;
+    min-height: 480px;
+    overflow-y: auto;
+    padding: 1.25rem;
+    scroll-behavior: smooth;
+}
+
+.chat-bubble-user {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.85), rgba(79, 70, 229, 0.95));
+    color: #ffffff;
+    border-radius: 16px 16px 4px 16px;
+    padding: 0.9rem 1.2rem;
+    max-width: 80%;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.25);
+    margin-left: auto;
+}
+
+.chat-bubble-ai {
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--ag-text-primary);
+    border-radius: 16px 16px 16px 4px;
+    padding: 1.1rem 1.3rem;
+    max-width: 88%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    margin-right: auto;
+    position: relative;
+}
+
+.chat-bubble-ai.not-found {
+    border-color: rgba(245, 158, 11, 0.4);
+    background: rgba(40, 30, 20, 0.7);
+}
+
+/* Antigravity Button */
+.btn-antigravity {
+    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+    color: #0b0f19;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    padding: 0.7rem 1.4rem;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+}
+
+.btn-antigravity:hover:not(:disabled) {
+    box-shadow: 0 6px 25px rgba(0, 242, 254, 0.5);
+    transform: translateY(-2px);
+    color: #000;
+}
+
+.btn-antigravity:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Glowing Input Bar */
+.ag-input-container {
+    background: rgba(17, 24, 39, 0.95);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    border-radius: 12px;
+    padding: 0.4rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ag-input-container:focus-within {
+    border-color: var(--ag-cyan);
+    box-shadow: var(--ag-glow-cyan);
+}
+
+.ag-textarea {
+    background: transparent !important;
+    border: none !important;
+    color: #fff !important;
+    resize: none;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.ag-textarea::placeholder {
+    color: var(--ag-text-muted);
+}
+
+/* Citation Drawer & Cards */
+.citation-card {
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 0.85rem;
+    margin-bottom: 0.75rem;
+    transition: border-color 0.2s ease;
+}
+
+.citation-card:hover {
+    border-color: rgba(0, 242, 254, 0.4);
+}
+
+.citation-passage {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    padding: 0.6rem;
+    color: #cbd5e1;
+    max-height: 180px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+/* Pulsing Thinking Indicator */
+.pulse-glow {
+    animation: pulseAnimation 1.8s infinite ease-in-out;
+}
+
+@keyframes pulseAnimation {
+    0%, 100% {
+        opacity: 0.4;
+        transform: scale(0.98);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.02);
+    }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.5);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.4);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--ag-cyan);
+}

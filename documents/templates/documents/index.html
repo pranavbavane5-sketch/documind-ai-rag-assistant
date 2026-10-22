@@ -1,0 +1,561 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocuMind AI — AI-Powered Document Intelligence Assistant</title>
+    
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5 CSS & Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    
+    <!-- DocuMind AI Theme Stylesheet -->
+    <link href="{% static 'css/documind.css' %}" rel="stylesheet">
+</head>
+
+<body class="documind-app">
+
+    <!-- Top Navigation Bar -->
+    <header class="dm-navbar">
+        <div class="container-fluid px-3 px-lg-4 d-flex justify-content-between align-items-center">
+            
+            <!-- Brand & Product Title -->
+            <div class="d-flex align-items-center gap-3">
+                <a class="d-flex align-items-center gap-2 text-decoration-none" href="/">
+                    <div class="dm-brand-icon">
+                        <i class="bi bi-cpu-fill"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="dm-brand-name">DocuMind<span class="dm-brand-accent">AI</span></span>
+                            <span class="dm-brand-edition d-none d-sm-inline">Hackathon Pro</span>
+                        </div>
+                        <div class="dm-brand-tagline d-none d-md-block">Retrieval-Augmented Document Intelligence with Verified Citations</div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Status Indicators & Actions -->
+            <div class="d-flex align-items-center gap-2">
+                
+                <!-- System Status Indicator -->
+                <div class="dm-status-ready d-none d-sm-inline-flex" title="ChromaDB and Gemini API active">
+                    <span class="dm-dot-pulse"></span>
+                    <span>System Online</span>
+                </div>
+
+                <!-- Language Selector Dropdown (English, Hindi, Marathi) -->
+                <div class="dropdown dm-lang-dropdown-wrapper">
+                    <button class="btn btn-sm dm-btn-header dropdown-toggle d-flex align-items-center gap-1" type="button" id="dmLangDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Change Language (English, Hindi, Marathi)">
+                        <i class="bi bi-translate text-cyan"></i>
+                        <span id="dmSelectedLangLabel" class="fw-semibold">English</span>
+                        <span class="badge bg-secondary-subtle text-primary border border-primary-subtle d-none d-lg-inline dm-lang-tag" id="dmActiveLocaleTag">en-IN</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end dm-dropdown-menu shadow" aria-labelledby="dmLangDropdown">
+                        <li><h6 class="dropdown-header small text-uppercase">Chat & Voice Language</h6></li>
+                        <li>
+                            <button class="dropdown-item dm-lang-opt active d-flex align-items-center justify-content-between" type="button" data-lang="en" data-label="English" data-locale="en-IN">
+                                <span><i class="bi bi-globe me-2 text-primary"></i>English</span>
+                                <span class="badge bg-primary-subtle text-primary ms-2 small">en-IN</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item dm-lang-opt d-flex align-items-center justify-content-between" type="button" data-lang="hi" data-label="हिन्दी (Hindi)" data-locale="hi-IN">
+                                <span><i class="bi bi-chat-quote-fill me-2 text-warning"></i>हिन्दी (Hindi)</span>
+                                <span class="badge bg-warning-subtle text-warning-emphasis ms-2 small">hi-IN</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item dm-lang-opt d-flex align-items-center justify-content-between" type="button" data-lang="mr" data-label="मराठी (Marathi)" data-locale="mr-IN">
+                                <span><i class="bi bi-chat-heart-fill me-2 text-danger"></i>मराठी (Marathi)</span>
+                                <span class="badge bg-danger-subtle text-danger ms-2 small">mr-IN</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Active Model Pill -->
+                <span class="dm-meta-badge d-none d-md-inline-flex" title="Active Generative AI Model">
+                    <i class="bi bi-stars dm-icon-model"></i>
+                    <span>{{ model_name }}</span>
+                </span>
+
+                <!-- ChromaDB Vector Count Pill -->
+                <span id="dmVectorCountBadge" class="dm-meta-badge" title="Indexed Chunks in ChromaDB">
+                    <i class="bi bi-database-fill-check dm-icon-db"></i>
+                    <span id="dmVectorCountText">{{ total_vectors }} Vectors</span>
+                </span>
+
+                <!-- Theme Toggle Button (Dark / Light Mode) -->
+                <button type="button" class="btn btn-sm dm-theme-toggle" id="dmThemeToggle" title="Toggle Light / Dark mode">
+                    <i class="bi bi-sun-fill" id="dmThemeIcon"></i>
+                </button>
+
+                <!-- Configure API Key Button -->
+                <button type="button" class="btn btn-sm dm-btn-header" data-bs-toggle="modal" data-bs-target="#apiKeyModal" title="Configure or update Gemini API Key">
+                    <i class="bi bi-key-fill text-warning"></i>
+                    <span class="d-none d-sm-inline">API Key</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Segmented View Navigation (visible only on small screens < 992px) -->
+    <div class="container-fluid px-3 pt-2 d-lg-none">
+        <div class="dm-mobile-tabs" role="tablist">
+            <button type="button" class="dm-mobile-tab-btn active" id="tabBtnDocs" data-target="colDocs">
+                <i class="bi bi-folder2-open me-1"></i> Documents (<span id="dmMobileDocCount">{{ documents|length }}</span>)
+            </button>
+            <button type="button" class="dm-mobile-tab-btn" id="tabBtnChat" data-target="colChat">
+                <i class="bi bi-chat-dots-fill me-1"></i> AI Assistant
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Workspace Dashboard -->
+    <main class="container-fluid px-3 px-lg-4 py-3">
+        <div class="row g-3">
+            
+            <!-- ========================================================= -->
+            <!-- 1. LEFT COLUMN: Document Hub & Upload Studio               -->
+            <!-- ========================================================= -->
+            <div class="col-lg-4 col-xl-4 dm-column-panel" id="colDocs">
+                <div class="dm-panel-card">
+                    
+                    <!-- Panel Header -->
+                    <div class="dm-panel-header">
+                        <div>
+                            <div class="dm-panel-title">
+                                <i class="bi bi-collection-play-fill dm-icon-gradient-purple"></i> Document Repository
+                            </div>
+                            <div class="dm-panel-subtitle">Upload PDFs & TXT files for semantic vector search</div>
+                        </div>
+                        <span id="dmDocCountBadge" class="dm-counter-badge">
+                            {{ documents|length }} file{{ documents|length|pluralize }}
+                        </span>
+                    </div>
+
+                    <div class="p-3 d-flex flex-column flex-grow-1">
+                        
+                        <!-- Prominent Drag & Drop Upload Zone -->
+                        <div class="dm-upload-zone mb-3" id="dmDropzone" tabindex="0" role="button" aria-label="Upload document drag and drop area">
+                            <input type="file" id="dmFileInput" accept=".pdf,.txt" aria-label="Select PDF or TXT file">
+                            <div class="dm-upload-icon-wrap" id="dmDropzoneIcon">
+                                <i class="bi bi-cloud-arrow-up-fill"></i>
+                            </div>
+                            <div class="dm-upload-title">Drop your document here</div>
+                            <div class="dm-upload-desc mb-2">or <span class="dm-browse-link">browse files</span> from your device</div>
+                            <div class="d-flex justify-content-center gap-2">
+                                <span class="dm-format-pill badge-pdf-pill"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</span>
+                                <span class="dm-format-pill badge-txt-pill"><i class="bi bi-file-earmark-text me-1"></i>TXT</span>
+                                <span class="dm-format-pill badge-size-pill">Max 10 MB</span>
+                            </div>
+                        </div>
+
+                        <!-- Real-time Upload Progress & Processing Box -->
+                        <div id="dmUploadFeedback" class="d-none dm-upload-progress"></div>
+
+                        <!-- Document List Header -->
+                        <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                            <span class="dm-section-eyebrow">
+                                <i class="bi bi-layers-fill me-1 text-primary"></i> Indexed Files
+                            </span>
+                            <span class="dm-status-tag" id="dmListStatus">
+                                {% if documents %}Ready to query{% else %}Awaiting files{% endif %}
+                            </span>
+                        </div>
+
+                        <!-- Indexed Documents List Container -->
+                        <div class="flex-grow-1 overflow-y-auto pe-1" id="dmDocListContainer">
+                            {% if documents %}
+                                {% for doc in documents %}
+                                <div class="dm-document-card d-flex justify-content-between align-items-center" id="dm-doc-{{ doc.id }}">
+                                    <div class="text-truncate me-2">
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            {% if doc.file_type == '.pdf' %}
+                                                <span class="dm-file-badge badge-pdf"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</span>
+                                            {% else %}
+                                                <span class="dm-file-badge badge-txt"><i class="bi bi-file-earmark-text me-1"></i>TXT</span>
+                                            {% endif %}
+                                            <span class="fw-semibold text-truncate small dm-doc-title" title="{{ doc.original_name }}">{{ doc.original_name }}</span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 dm-doc-meta">
+                                            <span><i class="bi bi-grid-3x3-gap-fill me-1 text-primary"></i>{{ doc.chunk_count }} chunks</span>
+                                            {% if doc.page_count %}
+                                                <span>&bull; {{ doc.page_count }} page{{ doc.page_count|pluralize }}</span>
+                                            {% endif %}
+                                            <span>&bull; {{ doc.file_size_display }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                        <button class="btn btn-doc-action btn-summarize-doc" data-name="{{ doc.original_name }}" title="Ask DocuMind to summarize this document">
+                                            <i class="bi bi-lightning-charge-fill text-warning"></i>
+                                        </button>
+                                        <button class="btn btn-doc-action btn-delete btn-delete-doc" data-id="{{ doc.id }}" title="Delete file and vector embeddings">
+                                            <i class="bi bi-trash3-fill text-danger"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-5 dm-empty-docs-box" id="dmEmptyDocsMessage">
+                                    <div class="dm-empty-circle mx-auto mb-2">
+                                        <i class="bi bi-folder-plus text-primary fs-3"></i>
+                                    </div>
+                                    <div class="fw-bold dm-empty-title">No documents indexed yet</div>
+                                    <div class="dm-empty-subtitle mt-1">Upload a PDF or TXT above to build your vector knowledge base.</div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Technical Footnote / Architecture Bar -->
+                        <div class="mt-auto pt-3 dm-architecture-bar">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span><i class="bi bi-shield-check text-emerald me-1"></i> RAG Grounding:</span>
+                                <span class="fw-semibold text-emerald">Strict (No Hallucinations)</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span><i class="bi bi-database text-violet me-1"></i> Vector Index:</span>
+                                <span class="dm-meta-soft">ChromaDB (384d Dense Vectors)</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- 2. RIGHT COLUMN: Main Intelligence Chat Canvas             -->
+            <!-- ========================================================= -->
+            <div class="col-lg-8 col-xl-8 dm-column-panel" id="colChat">
+                <div class="dm-panel-card">
+                    
+                    <!-- Chat Header with Controls -->
+                    <div class="dm-panel-header">
+                        <div>
+                            <div class="dm-panel-title">
+                                <i class="bi bi-robot dm-icon-gradient-cyan"></i> Document Intelligence Assistant
+                            </div>
+                            <div class="dm-panel-subtitle">Synthesizing verified answers grounded directly in uploaded context</div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="dm-guardrail-badge d-none d-sm-inline-flex">
+                                <i class="bi bi-shield-lock-fill me-1"></i> Zero Hallucination Guardrail
+                            </span>
+                            <button type="button" id="dmClearChatBtn" class="btn btn-sm dm-btn-ghost" title="Clear chat history">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> <span class="d-none d-md-inline">Reset Chat</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Scrollable Chat Stream -->
+                    <div class="dm-chat-canvas" id="dmChatStream">
+                        
+                        <!-- Dynamic Welcome / Empty State Screen -->
+                        <div id="dmWelcomeHero" class="dm-welcome-box">
+                            
+                            {% if documents %}
+                                <!-- State A: Documents already uploaded -->
+                                <div id="dmHeroWithDocs">
+                                    <div class="dm-welcome-hero-icon">
+                                        <i class="bi bi-stars"></i>
+                                    </div>
+                                    <h1 class="dm-welcome-title">Ask Anything About Your Documents</h1>
+                                    <div class="dm-welcome-subtitle">
+                                        DocuMind AI searches dense semantic vector chunks from your uploaded documents to synthesize verified, citation-backed answers.
+                                    </div>
+
+                                    <!-- Quick Prompt Chips -->
+                                    <div class="dm-chips-label text-muted small mb-2 fw-medium">Suggested queries to try:</div>
+                                    <div class="d-flex flex-wrap justify-content-center gap-2" id="dmPromptChipsContainer">
+                                        <button class="dm-pill-chip chip-violet" data-prompt="Summarize this document and highlight its core concepts, methodology, and key takeaways.">
+                                            <i class="bi bi-file-earmark-text-fill"></i> Summarize this document
+                                        </button>
+                                        <button class="dm-pill-chip chip-cyan" data-prompt="What are the key findings, definitions, and concepts explained in the text?">
+                                            <i class="bi bi-lightbulb-fill"></i> Key definitions & concepts
+                                        </button>
+                                        <button class="dm-pill-chip chip-emerald" data-prompt="What are the main conclusions and practical applications discussed?">
+                                            <i class="bi bi-check-circle-fill"></i> Main conclusions & takeaways
+                                        </button>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <!-- State B: Empty Knowledge Base before upload -->
+                                <div id="dmHeroEmptyDocs">
+                                    <div class="dm-welcome-hero-icon dm-hero-icon-gradient">
+                                        <i class="bi bi-file-earmark-arrow-up-fill"></i>
+                                    </div>
+                                    <h1 class="dm-welcome-title">Welcome to DocuMind AI</h1>
+                                    <div class="dm-welcome-subtitle">
+                                        Transform your PDFs and notes into a verifiable question-answering assistant powered by ChromaDB vector search and Google Gemini.
+                                    </div>
+
+                                    <!-- 3 Feature Highlight Cards with Vibrant Colors -->
+                                    <div class="row g-2 text-start mb-4 justify-content-center">
+                                        <div class="col-sm-4">
+                                            <div class="dm-feature-card feature-indigo">
+                                                <div class="dm-feature-icon-badge text-indigo"><i class="bi bi-cpu-fill"></i></div>
+                                                <div class="dm-feature-title">Dense Embeddings</div>
+                                                <div class="dm-feature-text">Multi-page PDFs chunked & indexed in ChromaDB vector store.</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="dm-feature-card feature-emerald">
+                                                <div class="dm-feature-icon-badge text-emerald"><i class="bi bi-shield-lock-fill"></i></div>
+                                                <div class="dm-feature-title">Strict RAG Prompt</div>
+                                                <div class="dm-feature-text">Answers strictly from context — zero speculative hallucinations.</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="dm-feature-card feature-fuchsia">
+                                                <div class="dm-feature-icon-badge text-fuchsia"><i class="bi bi-quote"></i></div>
+                                                <div class="dm-feature-title">Verifiable Citations</div>
+                                                <div class="dm-feature-text">Every response includes page numbers and relevance match %.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button type="button" class="btn dm-btn-primary-gradient rounded-pill px-4 py-2 fw-semibold d-inline-flex align-items-center gap-2" id="dmHeroUploadBtn">
+                                        <i class="bi bi-cloud-arrow-up-fill"></i> Upload Your First Document
+                                    </button>
+                                </div>
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                    <!-- Interactive Bottom Input Bar -->
+                    <div class="dm-input-wrapper">
+                        <!-- Feature 5: Quick Actions Bar -->
+                        <div class="dm-quick-actions-bar mb-2 d-flex align-items-center gap-2 overflow-x-auto pb-1" id="dmQuickActionsBar">
+                            <span class="dm-quick-label small text-muted d-none d-sm-inline"><i class="bi bi-lightning-charge text-warning"></i> Quick Actions:</span>
+                            <button type="button" class="btn btn-sm dm-quick-pill" data-action="summarize" title="Generate comprehensive summary">
+                                <i class="bi bi-file-earmark-text text-primary"></i> <span>Summarize</span>
+                            </button>
+                            <button type="button" class="btn btn-sm dm-quick-pill" data-action="key_findings" title="Extract key findings and principles">
+                                <i class="bi bi-lightbulb text-warning"></i> <span>Key Findings</span>
+                            </button>
+                            <button type="button" class="btn btn-sm dm-quick-pill" data-action="explain_simply" title="Explain concepts in simple terms">
+                                <i class="bi bi-magic text-cyan"></i> <span>Explain Simply</span>
+                            </button>
+                            <button type="button" class="btn btn-sm dm-quick-pill" data-action="gen_questions" title="Generate practice/exam questions">
+                                <i class="bi bi-question-circle text-emerald"></i> <span>Generate Questions</span>
+                            </button>
+                        </div>
+
+                        <!-- Feature 1: Animated Voice Recording Banner -->
+                        <div id="dmVoiceRecorderBar" class="dm-voice-banner d-none mb-2" role="status" aria-live="polite">
+                            <div class="d-flex align-items-center gap-2 flex-grow-1 overflow-hidden">
+                                <div class="dm-recording-badge">
+                                    <span class="dm-rec-dot"></span>
+                                    <span>LISTENING</span>
+                                </div>
+                                <div class="dm-wave-container" aria-label="Microphone audio input level">
+                                    <span class="dm-wave-bar"></span>
+                                    <span class="dm-wave-bar"></span>
+                                    <span class="dm-wave-bar"></span>
+                                    <span class="dm-wave-bar"></span>
+                                    <span class="dm-wave-bar"></span>
+                                    <span class="dm-wave-bar"></span>
+                                </div>
+                                <span class="dm-voice-status text-truncate" id="dmVoiceStatusText">Listening in English (en-IN)... Speak your question</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                <button type="button" id="dmVoiceRetryBtn" class="btn btn-sm dm-btn-voice-ctrl" title="Retry voice input">
+                                    <i class="bi bi-arrow-repeat"></i> <span class="d-none d-sm-inline">Retry</span>
+                                </button>
+                                <button type="button" id="dmVoiceCancelBtn" class="btn btn-sm dm-btn-voice-ctrl text-danger" title="Cancel voice input">
+                                    <i class="bi bi-x-circle"></i> <span class="d-none d-sm-inline">Cancel</span>
+                                </button>
+                                <button type="button" id="dmVoiceStopBtn" class="btn btn-sm dm-btn-voice-stop" title="Stop listening & keep transcribed text">
+                                    <i class="bi bi-check2-circle"></i> <span>Done</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <form id="dmChatForm">
+                            {% csrf_token %}
+                            <div class="dm-input-box">
+                                <textarea id="dmQueryInput" class="form-control dm-textarea" 
+                                          rows="1" 
+                                          placeholder="Ask a question or click the mic to speak... (Enter to send, Shift+Enter for newline)"
+                                          aria-label="Ask a question"></textarea>
+                                
+                                <!-- Feature 1: Microphone Button -->
+                                <button type="button" id="dmMicBtn" class="btn dm-btn-mic" aria-label="Voice input through microphone" title="Click to speak (Voice Input in English, Hindi, Marathi)">
+                                    <i class="bi bi-mic-fill" id="dmMicIcon"></i>
+                                </button>
+
+                                <button type="submit" id="dmSendBtn" class="btn dm-btn-send" aria-label="Send query">
+                                    <span id="dmSendBtnText">Ask AI</span>
+                                    <i class="bi bi-send-fill" id="dmSendBtnIcon"></i>
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 px-1 dm-footnote-text">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="dm-lang-status-pill" id="dmActiveLangStatus">
+                                    <i class="bi bi-translate text-cyan me-1"></i> <span id="dmActiveLangBadge">English (en-IN)</span>
+                                </span>
+                                <span class="d-none d-md-inline text-muted">&bull;</span>
+                                <span class="d-none d-md-inline"><i class="bi bi-shield-check text-emerald me-1"></i> Grounded in Evidence</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="javascript:void(0)" class="dm-privacy-link text-decoration-none" data-bs-toggle="modal" data-bs-target="#voicePrivacyModal" title="Learn about speech recognition and audio privacy">
+                                    <i class="bi bi-shield-lock me-1"></i> Voice Privacy
+                                </a>
+                                <span class="d-none d-sm-inline text-muted">&bull;</span>
+                                <span class="d-none d-sm-inline">Press <kbd class="dm-kbd">Enter ↵</kbd></span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- API Key Configuration Modal -->
+    <div class="modal fade" id="apiKeyModal" tabindex="-1" aria-labelledby="apiKeyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content dm-modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom py-3">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="apiKeyModalLabel">
+                        <i class="bi bi-key-fill text-warning"></i> Configure Gemini API Key
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="small mb-3 text-muted">
+                        Enter your Google Gemini API key to activate Generative AI synthesis. Your key is securely stored in your local <code>.env</code> file and never exposed in the browser.
+                    </p>
+                    <form id="saveKeyForm">
+                        <div class="mb-3">
+                            <label for="modalApiKeyInput" class="form-label fw-semibold small">Google Gemini API Key</label>
+                            <input type="password" class="form-control dm-modal-input" id="modalApiKeyInput" placeholder="AIzaSy..." required autocomplete="off">
+                            <div class="form-text small mt-1">
+                                Need a key? <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" class="dm-modal-link">Get a free Gemini API key from Google AI Studio</a>.
+                            </div>
+                        </div>
+                        <div id="modalKeyAlert" class="d-none alert small py-2 px-3 mb-3"></div>
+                        <button type="submit" id="saveKeyBtn" class="btn dm-btn-primary-gradient w-100 py-2 justify-content-center">
+                            <i class="bi bi-check2-circle me-1"></i> Save & Activate API Key
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Recognition & Audio Privacy Information Modal -->
+    <div class="modal fade" id="voicePrivacyModal" tabindex="-1" aria-labelledby="voicePrivacyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content dm-modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom py-3">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="voicePrivacyModalLabel">
+                        <i class="bi bi-shield-check text-emerald"></i> Voice Recognition & Privacy Notice
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="d-flex align-items-start gap-3 mb-3">
+                        <div class="dm-feature-icon-badge text-indigo flex-shrink-0">
+                            <i class="bi bi-mic-fill fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold text-heading small">Strictly User-Initiated Microphone Access</div>
+                            <div class="small text-muted">DocuMind AI never listens in the background. Audio capture starts only when you click the microphone button and terminates immediately when you finish or cancel.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-start gap-3 mb-3">
+                        <div class="dm-feature-icon-badge text-emerald flex-shrink-0">
+                            <i class="bi bi-database-slash fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold text-heading small">Zero Audio Storage</div>
+                            <div class="small text-muted">No audio is ever recorded, stored, or logged on DocuMind AI servers. All audio is processed ephemeral-only for transcription.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-start gap-3 mb-3">
+                        <div class="dm-feature-icon-badge text-cyan flex-shrink-0">
+                            <i class="bi bi-clouds-fill fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold text-heading small">Browser-Based Web Speech API</div>
+                            <div class="small text-muted">Speech-to-text uses standard HTML5 Web Speech (SpeechRecognition). Depending on your browser (e.g. Chrome, Edge), audio may be securely routed to your browser vendor's recognition service to produce accurate multi-language transcriptions.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="dm-feature-icon-badge text-fuchsia flex-shrink-0">
+                            <i class="bi bi-pencil-square fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold text-heading small">Full Review Before Sending</div>
+                            <div class="small text-muted">Transcriptions are placed into the editable chat box first. You can always review, edit, or clear your question before submitting it to the AI.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top py-2">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diagram Zoom & High-Resolution Viewer Modal -->
+    <div class="modal fade" id="dmDiagramZoomModal" tabindex="-1" aria-labelledby="dmDiagramZoomModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content dm-modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom py-2 px-3 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-diagram-3-fill text-primary"></i>
+                        <h6 class="modal-title fw-bold mb-0" id="dmDiagramZoomModalLabel">Visual Diagram Inspection</h6>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary dm-zoom-ctrl-btn" id="dmZoomInBtn" title="Zoom in">
+                            <i class="bi bi-zoom-in"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary dm-zoom-ctrl-btn" id="dmZoomOutBtn" title="Zoom out">
+                            <i class="bi bi-zoom-out"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary dm-zoom-ctrl-btn" id="dmZoomResetBtn" title="Reset zoom">
+                            <i class="bi bi-arrows-angle-contract"></i>
+                        </button>
+                        <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                </div>
+                <div class="modal-body p-4 text-center overflow-auto" id="dmDiagramZoomModalBody" style="min-height: 480px; max-height: 80vh;">
+                    <!-- Zoomed diagram rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Toast Notifications Container -->
+    <div id="dmToastContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1090;"></div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Mermaid.js for Visual Diagrams, Flowcharts & Timelines -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <!-- Chart.js for Interactive Numerical & Statistical Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    
+    <!-- DocuMind AI Client Engine -->
+    <script src="{% static 'js/documind.js' %}"></script>
+</body>
+</html>

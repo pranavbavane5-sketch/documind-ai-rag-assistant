@@ -1,0 +1,29 @@
+# Environment variables and API secrets
+.env
+.env.local
+
+# Python cache & virtual environment
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.venv/
+
+# Django files
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# Vector database storage
+chroma_db/
+chroma_db_test/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+
+# Temporary testing scripts
+scratch/
+
