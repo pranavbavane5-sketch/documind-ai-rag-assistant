@@ -102,10 +102,17 @@ def api_ask(request):
         query = data.get('query', '').strip()
         language = data.get('language', 'en').strip().lower()
         force_visual = bool(data.get('force_visual', False))
+        client_key = (data.get('api_key') or '').strip()
     except Exception:
         query = request.POST.get('query', '').strip()
         language = request.POST.get('language', 'en').strip().lower()
         force_visual = request.POST.get('force_visual', '').lower() in ('true', '1')
+        client_key = request.POST.get('api_key', '').strip()
+
+    # If client passed an active key from localStorage/modal, use it
+    if client_key and client_key != 'YOUR_GEMINI_API_KEY':
+        settings.GEMINI_API_KEY = client_key
+        os.environ['GEMINI_API_KEY'] = client_key
 
     if not query:
         return JsonResponse({'success': False, 'error': 'Please enter a valid question.'}, status=400)
@@ -174,7 +181,8 @@ def api_status(request):
 @require_POST
 def api_save_key(request):
     """
-    Saves the user's Gemini API key to .env and updates runtime settings in memory.
+    Saves the user's Gemini API key to runtime memory and attempts persistence.
+    Works seamlessly on read-only serverless filesystems (Vercel).
     """
     import re
     try:
@@ -186,12 +194,13 @@ def api_save_key(request):
     if not api_key:
         return JsonResponse({'success': False, 'error': 'API key cannot be empty.'}, status=400)
 
-    # Update in memory
+    # Update in runtime memory immediately
     settings.GEMINI_API_KEY = api_key
     os.environ['GEMINI_API_KEY'] = api_key
 
-    # Persist to .env file
-    env_path = settings.BASE_DIR / '.env'
+    # Attempt persistence to .env or /tmp/.env
+    is_vercel = getattr(settings, 'IS_VERCEL', False)
+    env_path = Path('/tmp/.env') if is_vercel else (settings.BASE_DIR / '.env')
     try:
         if env_path.exists():
             content = env_path.read_text(encoding='utf-8')
@@ -202,13 +211,14 @@ def api_save_key(request):
             env_path.write_text(content, encoding='utf-8')
         else:
             env_path.write_text(f"GEMINI_API_KEY={api_key}\n", encoding='utf-8')
+    except Exception:
+        # On read-only serverless environments, in-memory activation is already complete
+        pass
 
-        return JsonResponse({
-            'success': True,
-            'message': 'Gemini API key saved and activated successfully! You can now ask questions.'
-        })
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': f"Failed to write to .env: {str(e)}"}, status=500)
+    return JsonResponse({
+        'success': True,
+        'message': 'Gemini API key saved and activated successfully! You can now ask questions.'
+    })
 
 
 # -----------------------------------------------------------------------------

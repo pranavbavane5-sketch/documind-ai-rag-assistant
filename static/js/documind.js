@@ -1156,7 +1156,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     query: query,
                     language: currentLanguage,
-                    force_visual: forceVisual
+                    force_visual: forceVisual,
+                    api_key: localStorage.getItem('documind-api-key') || ''
                 }),
                 signal: controller.signal
             });
@@ -1592,10 +1593,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveKeyBtn = document.getElementById('saveKeyBtn');
 
     if (saveKeyForm) {
+        if (modalApiKeyInput) {
+            modalApiKeyInput.value = localStorage.getItem('documind-api-key') || '';
+        }
+
         saveKeyForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const key = modalApiKeyInput.value.trim();
             if (!key) return;
+
+            // Save locally in browser storage immediately
+            localStorage.setItem('documind-api-key', key);
 
             saveKeyBtn.disabled = true;
             saveKeyBtn.innerHTML = '<span class="dm-spinner-sm me-1"></span> Saving...';
@@ -1627,9 +1635,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     modalKeyAlert.classList.remove('d-none');
                 }
             } catch (err) {
-                modalKeyAlert.className = 'alert alert-danger small py-2 px-3 mb-3';
-                modalKeyAlert.textContent = 'Server error while saving key.';
+                // If network or server error, key is still saved locally in browser
+                modalKeyAlert.className = 'alert alert-success small py-2 px-3 mb-3';
+                modalKeyAlert.textContent = 'API Key saved locally in your browser and ready to use!';
                 modalKeyAlert.classList.remove('d-none');
+                showToast('API Key saved locally in browser!', 'success');
+                setTimeout(() => {
+                    const modalEl = document.getElementById('apiKeyModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                }, 1200);
             } finally {
                 saveKeyBtn.disabled = false;
                 saveKeyBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Save & Activate API Key';
