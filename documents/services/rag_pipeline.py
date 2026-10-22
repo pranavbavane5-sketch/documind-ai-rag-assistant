@@ -18,45 +18,200 @@ from typing import List, Dict, Any, Tuple, Optional
 
 from django.conf import settings
 from documents.models import Document
+import numpy as np
 
-# Third-party RAG dependencies
+# Safe optional third-party imports (allows serverless deployment < 100MB without PyTorch)
 import pypdf
-from sentence_transformers import SentenceTransformer
-import chromadb
+
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError:
+    SentenceTransformer = None
+
+try:
+    import chromadb
+except ImportError:
+    chromadb = None
 
 # Cached instances
 _EMBEDDING_MODEL = None
 _CHROMA_CLIENT = None
+_LIGHTWEIGHT_STORE = None
 
 
-def get_embedding_model() -> SentenceTransformer:
+class LightweightVectorStore:
     """
-    Returns a cached singleton instance of the SentenceTransformer embedding model.
-    Default model: 'all-MiniLM-L6-v2' (fast, 384-dimensional dense vectors).
+    Zero-heavy-dependency vector store optimized for serverless environments (Vercel).
+    Computes cosine similarity in milliseconds using pure NumPy.
+    Stores data in memory with JSON persistence.
+    """
+    def __init__(self, persist_dir: str):
+        self.persist_path = Path(persist_dir) / 'vectors.json'
+        self.data: List[Dict[str, Any]] = []
+        self._load()
+
+    def _load(self):
+        try:
+            if self.persist_path.exists():
+                with open(self.persist_path, 'r', encoding='utf-8') as f:
+                    self.data = json.load(f)
+        except Exception:
+            self.data = []
+
+    def _save(self):
+        try:
+            os.makedirs(self.persist_path.parent, exist_ok=True)
+            with open(self.persist_path, 'w', encoding='utf-8') as f:
+                json.dump(self.data, f)
+        except Exception:
+            pass
+
+    def add(self, ids: List[str], embeddings: List[List[float]], metadatas: List[Dict[str, Any]], documents: List[str]):
+        id_set = set(ids)
+        self.data = [item for item in self.data if item['id'] not in id_set]
+        for cid, emb, meta, doc in zip(ids, embeddings, metadatas, documents):
+            self.data.append({
+                'id': cid,
+                'embedding': emb,
+                'metadata': meta,
+                'document': doc
+            })
+        self._save()
+
+    def delete(self, where: Dict[str, Any]):
+        doc_id = where.get('document_id')
+        if doc_id is not None:
+            self.data = [item for item in self.data if item.get('metadata', {}).get('document_id') != doc_id]
+            self._save()
+
+    def count(self) -> int:
+        return len(self.data)
+
+    def query(self, query_embeddings: List[List[float]], n_results: int = 4, include: Optional[List[str]] = None):
+        if not self.data or not query_embeddings:
+            return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
+
+        query_vec = np.array(query_embeddings[0], dtype=np.float32)
+        q_norm = float(np.linalg.norm(query_vec))
+        if q_norm == 0:
+            q_norm = 1.0
+
+        scores = []
+        for item in self.data:
+            doc_vec = np.array(item['embedding'], dtype=np.float32)
+            d_norm = float(np.linalg.norm(doc_vec))
+            if d_norm == 0:
+                d_norm = 1.0
+            cosine_sim = float(np.dot(query_vec, doc_vec) / (q_norm * d_norm))
+            # Convert cosine similarity (-1 to 1) to Chroma distance (0 to 2)
+            dist = max(0.0, min(2.0, (1.0 - cosine_sim) * 2.0))
+            scores.append((dist, item['document'], item['metadata']))
+
+        scores.sort(key=lambda x: x[0])
+        top = scores[:n_results]
+
+        return {
+            "documents": [[t[1] for t in top]],
+            "metadatas": [[t[2] for t in top]],
+            "distances": [[t[0] for t in top]]
+        }
+
+
+def get_embedding_model():
+    """
+    Returns a cached singleton instance of SentenceTransformer if installed.
     """
     global _EMBEDDING_MODEL
-    if _EMBEDDING_MODEL is None:
-        model_name = getattr(settings, 'EMBEDDING_MODEL_NAME', 'all-MiniLM-L6-v2')
-        _EMBEDDING_MODEL = SentenceTransformer(model_name)
+    if SentenceTransformer is not None and _EMBEDDING_MODEL is None:
+        try:
+            model_name = getattr(settings, 'EMBEDDING_MODEL_NAME', 'all-MiniLM-L6-v2')
+            _EMBEDDING_MODEL = SentenceTransformer(model_name)
+        except Exception:
+            _EMBEDDING_MODEL = None
     return _EMBEDDING_MODEL
+
+
+def generate_dense_embeddings(texts: List[str]) -> List[List[float]]:
+    """
+    Generates dense embeddings for chunks or queries.
+    1. Gemini Cloud Embedding API (fast, serverless-friendly, 0 MB local model weights)
+    2. Local SentenceTransformer (if available)
+    3. Lightweight NumPy frequency hash vectors
+    """
+    if not texts:
+        return []
+
+    # Priority 1: Gemini Cloud Embeddings (ideal for serverless Vercel)
+    api_key = get_active_gemini_api_key()
+    if api_key:
+        try:
+            from google import genai
+            client = genai.Client(api_key=api_key)
+            batch_size = 50
+            results = []
+            for i in range(0, len(texts), batch_size):
+                batch = texts[i:i + batch_size]
+                res = client.models.embed_content(
+                    model='gemini-embedding-001',
+                    contents=batch,
+                    config={'output_dimensionality': 384}
+                )
+                if hasattr(res, 'embeddings') and res.embeddings:
+                    results.extend([list(e.values) for e in res.embeddings])
+            if len(results) == len(texts):
+                return results
+        except Exception:
+            pass
+
+    # Priority 2: Local SentenceTransformer
+    if SentenceTransformer is not None:
+        try:
+            model = get_embedding_model()
+            if model is not None:
+                return model.encode(texts, show_progress_bar=False).tolist()
+        except Exception:
+            pass
+
+    # Priority 3: Pure Python/NumPy hash vector (384 dimensions)
+    import hashlib
+    vectors = []
+    dim = 384
+    for t in texts:
+        vec = [0.0] * dim
+        words = t.lower().split()
+        for w in words:
+            h = int(hashlib.md5(w.encode('utf-8')).hexdigest(), 16) % dim
+            vec[h] += 1.0
+        norm = sum(x * x for x in vec) ** 0.5
+        if norm > 0:
+            vec = [x / norm for x in vec]
+        vectors.append(vec)
+    return vectors
 
 
 def get_chroma_collection():
     """
-    Returns the persistent ChromaDB collection for the Antigravity assistant.
-    Storage location: settings.CHROMA_PERSIST_DIR.
+    Returns the persistent vector store collection.
+    Uses ChromaDB if available; falls back to LightweightVectorStore in serverless environments.
     """
-    global _CHROMA_CLIENT
+    global _CHROMA_CLIENT, _LIGHTWEIGHT_STORE
     persist_dir = str(getattr(settings, 'CHROMA_PERSIST_DIR', settings.BASE_DIR / 'chroma_db'))
     os.makedirs(persist_dir, exist_ok=True)
 
-    if _CHROMA_CLIENT is None:
-        _CHROMA_CLIENT = chromadb.PersistentClient(path=persist_dir)
+    if chromadb is not None:
+        try:
+            if _CHROMA_CLIENT is None:
+                _CHROMA_CLIENT = chromadb.PersistentClient(path=persist_dir)
+            return _CHROMA_CLIENT.get_or_create_collection(
+                name="antigravity_documents_collection",
+                metadata={"description": "Antigravity Document Intelligence Vector Store"}
+            )
+        except Exception:
+            pass
 
-    return _CHROMA_CLIENT.get_or_create_collection(
-        name="antigravity_documents_collection",
-        metadata={"description": "Antigravity Document Intelligence Vector Store"}
-    )
+    if _LIGHTWEIGHT_STORE is None:
+        _LIGHTWEIGHT_STORE = LightweightVectorStore(persist_dir)
+    return _LIGHTWEIGHT_STORE
 
 
 def validate_file(uploaded_file) -> Tuple[bool, str]:
@@ -206,11 +361,10 @@ def process_and_index_document(document: Document) -> int:
         raise ValueError("Failed to create any text chunks from document.")
 
     # Generate dense vector embeddings
-    model = get_embedding_model()
     chunk_texts = [c['text'] for c in chunks]
-    embeddings = model.encode(chunk_texts, show_progress_bar=False).tolist()
+    embeddings = generate_dense_embeddings(chunk_texts)
 
-    # Index into ChromaDB
+    # Index into vector store
     collection = get_chroma_collection()
     ids = [f"doc_{document.id}_chunk_{c['chunk_index']}" for c in chunks]
     metadatas = [
@@ -352,7 +506,6 @@ def retrieve_relevant_chunks(query: str, top_k: int = 4) -> List[Dict[str, Any]]
     if count == 0:
         return []
 
-    model = get_embedding_model()
     queries_to_search = [query]
 
     # If query contains Hindi or Marathi Devanagari characters, expand to English search terms as well
@@ -363,11 +516,11 @@ def retrieve_relevant_chunks(query: str, top_k: int = 4) -> List[Dict[str, Any]]
 
     chunks_by_id = {}
     n_results = min(top_k, count)
+    query_embeddings = generate_dense_embeddings(queries_to_search)
 
-    for q in queries_to_search:
-        query_embedding = model.encode([q]).tolist()[0]
+    for q, q_emb in zip(queries_to_search, query_embeddings):
         results = collection.query(
-            query_embeddings=[query_embedding],
+            query_embeddings=[q_emb],
             n_results=n_results,
             include=["documents", "metadatas", "distances"]
         )

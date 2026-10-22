@@ -14,3 +14,15 @@ from django.core.wsgi import get_wsgi_application
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
 application = get_wsgi_application()
+
+# Alias for Vercel Serverless Function entrypoint
+app = application
+
+# Run database migrations on Vercel initialization if running in cloud
+if 'VERCEL' in os.environ or os.getenv('VERCEL', '0') == '1':
+    try:
+        from django.core.management import call_command
+        call_command('migrate', interactive=False)
+    except Exception as e:
+        print(f"Vercel auto-migrate notice: {e}")
+

@@ -26,4 +26,6 @@ chroma_db_test/
 
 # Temporary testing scripts
 scratch/
+staticfiles/
+.vercel/
 

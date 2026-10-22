@@ -1,12 +1,10 @@
-# Antigravity Document Intelligence Assistant
-# Python Dependencies
+# DocuMind AI — Serverless & Production Optimized Dependencies (< 80 MB bundle)
+# Excludes heavy local PyTorch (5.9 GB) in favor of Gemini Cloud Embeddings
 
 Django>=5.1.0,<6.2.0
 pypdf>=4.0.0
-sentence-transformers>=3.0.0
-chromadb>=0.5.0
-google-generativeai>=0.8.0
 google-genai>=0.1.0
+google-generativeai>=0.8.0
 numpy>=1.24.0
 python-dotenv>=1.0.0
-torch>=2.0.0
+whitenoise>=6.6.0
