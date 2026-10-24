@@ -508,6 +508,17 @@ def retrieve_relevant_chunks(query: str, top_k: int = 4) -> List[Dict[str, Any]]
 
     queries_to_search = [query]
 
+    # Meta/synthesis query expansion:
+    # If the user asks for exam questions, viva questions, mind maps, or summaries,
+    # expand search queries with foundational concept terms so ChromaDB retrieves comprehensive topical chunks.
+    q_lower = query.lower()
+    if any(k in q_lower for k in ['exam', 'question', 'test', 'viva', 'interview', 'quiz', 'परीक्षा', 'प्रश्न']):
+        queries_to_search.append("core concepts definitions architecture overview key topics principles")
+    elif any(k in q_lower for k in ['mind map', 'diagram', 'concept map', 'flowchart', 'माइंड मैप', 'नकाशा']):
+        queries_to_search.append("structure architecture workflow key components concepts overview")
+    elif any(k in q_lower for k in ['summary', 'summarize', 'takeaways', 'overview', 'सारांश']):
+        queries_to_search.append("introduction summary overview conclusion core methodology")
+
     # If query contains Hindi or Marathi Devanagari characters, expand to English search terms as well
     if re.search(r'[\u0900-\u097F]', query):
         english_expansion = expand_cross_lingual_query(query)
@@ -625,7 +636,11 @@ def query_rag_pipeline(query: str, top_k: int = 4, language: str = 'en', force_v
     anti_hallucination_phrase = lang_info['anti_hallucination']
     lang_instruction = lang_info['instruction']
 
-    retrieved_chunks = retrieve_relevant_chunks(query, top_k=top_k)
+    q_lower = query.lower()
+    is_synthesis = any(k in q_lower for k in ['exam', 'question', 'viva', 'mind map', 'summary', 'summarize', 'सारांश', 'प्रश्न', 'परीक्षे']) or force_visual
+    eff_top_k = max(top_k, 6) if is_synthesis else top_k
+
+    retrieved_chunks = retrieve_relevant_chunks(query, top_k=eff_top_k)
 
     if not retrieved_chunks:
         return {
@@ -702,13 +717,17 @@ def query_rag_pipeline(query: str, top_k: int = 4, language: str = 'en', force_v
         "Output ONLY the JSON object. Do not add markdown formatting or commentary outside the JSON."
     )
 
-    # Strict system prompt prescribed by requirements
+    # Strict system prompt with grounding & anti-hallucination verification
     strict_system_prompt = (
         "You are an AI Document Assistant powered by DocuMind AI's Smart Visual Learning Engine. "
-        "Use ONLY the provided context chunks below to answer the user's query. "
-        f"If the query cannot be answered based on the context provided, reply strictly with: "
+        "Use the provided context chunks below to fulfill the user's query or instruction. "
+        "You are authorized and encouraged to synthesize the provided context chunks to generate structured study aids "
+        "(such as exam-oriented questions with model answers and marking points, viva-voce technical questions, "
+        "comprehensive summaries, and visual concept maps/diagrams), provided that every question, answer, concept, and definition "
+        "is strictly grounded in and derived directly from the facts, code, and explanations present in the provided context chunks. "
+        f"Only if the user's query is asking about a completely unrelated topic that is not covered or mentioned anywhere in the provided context, reply strictly with: "
         f"'{anti_hallucination_phrase}' "
-        "Do NOT hallucinate or use outside knowledge. "
+        "Do NOT hallucinate facts, numbers, or outside concepts not supported by the document. "
         f"Language Instruction: {lang_instruction} "
         "Ensure factual accuracy and preserve numbers, code, and technical definitions faithfully. "
         "Do NOT invent or alter any source citations or chunk IDs.\n\n"
@@ -726,7 +745,7 @@ def query_rag_pipeline(query: str, top_k: int = 4, language: str = 'en', force_v
 
     # Invoke Google Gemini API
     configured_model = getattr(settings, 'GEMINI_MODEL', 'gemini-3.5-flash-lite')
-    candidate_models = [configured_model, 'gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-flash-latest']
+    candidate_models = [configured_model, 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-flash-latest']
     seen = set()
     candidate_models = [m for m in candidate_models if not (m in seen or seen.add(m))]
 
