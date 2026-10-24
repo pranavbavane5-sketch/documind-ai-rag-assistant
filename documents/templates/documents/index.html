@@ -1,42 +1,46 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DocuMind AI — AI-Powered Document Intelligence Assistant</title>
+    <title>DocuMind AI — Document Intelligence Studio</title>
     
     <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Bootstrap 5 CSS & Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     
-    <!-- DocuMind AI SaaS Theme Stylesheet -->
+    <!-- DocuMind AI Creative Futuristic Studio Stylesheet -->
     <link href="{% static 'css/documind.css' %}" rel="stylesheet">
 </head>
 
 <body class="documind-app">
 
-    <!-- Top Navigation Bar -->
+    <!-- Top Navigation Bar (Compact Editorial) -->
     <header class="dm-navbar">
-        <div class="container-fluid px-2 px-xl-4 d-flex justify-content-between align-items-center">
+        <div class="container-fluid px-3 px-xl-4 d-flex justify-content-between align-items-center">
             
-            <!-- Brand & Tagline -->
+            <!-- Brand Symbol & Studio Label -->
             <div class="d-flex align-items-center gap-3">
                 <a class="d-flex align-items-center gap-2 text-decoration-none" href="/">
-                    <div class="dm-brand-icon">
-                        <i class="bi bi-file-earmark-text-fill"></i>
+                    <div class="dm-brand-symbol" title="DocuMind AI Symbol">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M14 2V8H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="14" r="2" fill="#60A5FA"/>
+                            <path d="M12 12V10M12 18V16M10 14H8M16 14H14" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
                     </div>
                     <div>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="dm-brand-name">DocuMind<span class="dm-brand-accent"> AI</span></span>
-                            <span class="dm-brand-badge d-none d-sm-inline">RAG Intelligence</span>
+                            <span class="dm-brand-name">DocuMind<span class="dm-brand-glow">AI</span></span>
+                            <span class="dm-nav-studio-label d-none d-sm-inline">Document Intelligence Studio</span>
                         </div>
-                        <div class="dm-brand-tagline d-none d-md-block">Chat with your documents. Discover insights instantly.</div>
                     </div>
                 </a>
             </div>
@@ -44,15 +48,21 @@
             <!-- Status Indicators & Actions -->
             <div class="d-flex align-items-center gap-2">
                 
-                <!-- Compact System Status Indicator -->
-                <div class="dm-status-ready d-none d-sm-inline-flex" title="ChromaDB and Gemini API active">
-                    <span class="dm-dot-pulse"></span>
-                    <span>System Online</span>
+                <!-- Live System Ready Pill -->
+                <div class="dm-status-pill d-none d-sm-inline-flex" title="ChromaDB and Gemini API active">
+                    <span class="dm-status-dot"></span>
+                    <span>SYSTEM ONLINE</span>
                 </div>
+
+                <!-- Jump to Studio Button (Desktop) -->
+                <a href="#dmStudioWorkspace" class="btn btn-sm dm-btn-nav d-none d-md-inline-flex">
+                    <i class="bi bi-cpu text-primary"></i>
+                    <span>Studio</span>
+                </a>
 
                 <!-- Language Selector Dropdown -->
                 <div class="dropdown dm-lang-dropdown-wrapper">
-                    <button class="btn btn-sm dm-btn-header dropdown-toggle d-flex align-items-center gap-1" type="button" id="dmLangDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Language selection">
+                    <button class="btn btn-sm dm-btn-nav dropdown-toggle" type="button" id="dmLangDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Language selection">
                         <i class="bi bi-translate text-primary"></i>
                         <span id="dmSelectedLangLabel" class="fw-semibold">English</span>
                     </button>
@@ -79,31 +89,162 @@
                     </ul>
                 </div>
 
-                <!-- Theme Toggle Button (Light / Dark Mode) -->
-                <button type="button" class="btn btn-sm dm-theme-toggle" id="dmThemeToggle" title="Toggle Light / Dark mode">
-                    <i class="bi bi-moon-stars" id="dmThemeIcon"></i>
+                <!-- Theme Toggle Button (Dark / Light Mode) -->
+                <button type="button" class="dm-theme-toggle" id="dmThemeToggle" title="Toggle Theme">
+                    <i class="bi bi-sun" id="dmThemeIcon"></i>
+                </button>
+
+                <!-- Hidden/Subtle API Key Trigger -->
+                <button type="button" class="btn btn-sm dm-btn-nav" data-bs-toggle="modal" data-bs-target="#apiKeyModal" title="Gemini API Key Configuration">
+                    <i class="bi bi-key text-secondary"></i>
+                    <span class="d-none d-lg-inline">Key</span>
                 </button>
             </div>
         </div>
     </header>
 
+    <!-- Editorial Hero Section (Asymmetric Landing) -->
+    <section class="dm-hero-section">
+        <div class="container-fluid px-3 px-xl-4">
+            <div class="row align-items-center g-4">
+                
+                <!-- Left Column: Oversized Editorial Typography -->
+                <div class="col-lg-7 col-xl-7">
+                    <div class="dm-hero-badge">
+                        <i class="bi bi-stars text-primary"></i>
+                        <span>INTELLIGENCE STUDIO // 01</span>
+                    </div>
+                    <h1 class="dm-hero-title">
+                        Your documents.<br>
+                        <span class="dm-gradient-text">A new dimension</span> of understanding.
+                    </h1>
+                    <p class="dm-hero-desc">
+                        Upload your files, explore their meaning, and discover answers grounded in your own knowledge. Powered by dense vector search and strict generative AI.
+                    </p>
+                    <div class="dm-hero-actions">
+                        <a href="#dmStudioWorkspace" class="dm-btn-primary">
+                            <i class="bi bi-cpu-fill"></i>
+                            <span>Open Intelligence Studio</span>
+                        </a>
+                        <button type="button" class="dm-btn-outline" id="dmHeroTriggerUpload">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                            <span>Upload a Document</span>
+                        </button>
+                    </div>
+                    <div class="dm-hero-metrics d-none d-sm-flex">
+                        <span><i class="bi bi-shield-check text-success"></i> ZERO-HALLUCINATION GUARD</span>
+                        <span>&bull;</span>
+                        <span><i class="bi bi-database text-primary"></i> 384D DENSE EMBEDDINGS</span>
+                        <span>&bull;</span>
+                        <span><i class="bi bi-quote text-info"></i> VERIFIABLE CITATIONS</span>
+                    </div>
+                </div>
+
+                <!-- Right Column: Abstract Document-to-Vector Artwork -->
+                <div class="col-lg-5 col-xl-5">
+                    <div class="dm-hero-artwork-box">
+                        <div class="dm-artwork-header">
+                            <span><i class="bi bi-diagram-3 me-1 text-primary"></i> LATENT SPACE VISUALIZER</span>
+                            <span>[REAL-TIME RAG]</span>
+                        </div>
+                        <div class="dm-artwork-canvas">
+                            <svg class="dm-hero-svg-illustration" viewBox="0 0 460 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Background grid marks -->
+                                <line x1="20" y1="20" x2="440" y2="20" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3 3"/>
+                                <line x1="20" y1="85" x2="440" y2="85" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3 3"/>
+                                <line x1="20" y1="150" x2="440" y2="150" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3 3"/>
+
+                                <!-- Left: Floating Document Page -->
+                                <g transform="translate(30, 25)">
+                                    <rect x="0" y="8" width="80" height="105" rx="6" fill="#11182B" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+                                    <rect x="8" y="0" width="80" height="105" rx="6" fill="#0C101D" stroke="#3B82F6" stroke-width="1.5"/>
+                                    <!-- Page content lines -->
+                                    <line x1="20" y1="20" x2="65" y2="20" stroke="#60A5FA" stroke-width="2.5" stroke-linecap="round"/>
+                                    <line x1="20" y1="32" x2="75" y2="32" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round"/>
+                                    <line x1="20" y1="42" x2="70" y2="42" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round"/>
+                                    <line x1="20" y1="52" x2="58" y2="52" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round"/>
+                                    <!-- Extracted chunk highlight -->
+                                    <rect x="18" y="62" width="60" height="26" rx="3" fill="rgba(59,130,246,0.15)" stroke="#3B82F6" stroke-width="1"/>
+                                    <line x1="24" y1="72" x2="68" y2="72" stroke="#93C5FD" stroke-width="1.5" stroke-linecap="round"/>
+                                    <line x1="24" y1="80" x2="54" y2="80" stroke="#93C5FD" stroke-width="1.5" stroke-linecap="round"/>
+                                </g>
+
+                                <!-- Transformation Pathways -->
+                                <path d="M125 55 C 170 55, 170 35, 215 35" stroke="url(#dmGradLine1)" stroke-width="1.8" stroke-dasharray="4 3"/>
+                                <path d="M125 75 C 170 75, 170 85, 215 85" stroke="url(#dmGradLine2)" stroke-width="2"/>
+                                <path d="M125 95 C 170 95, 170 135, 215 135" stroke="url(#dmGradLine1)" stroke-width="1.8" stroke-dasharray="4 3"/>
+
+                                <!-- Vector Transformation Matrix -->
+                                <g transform="translate(215, 20)">
+                                    <!-- Top Node -->
+                                    <circle cx="0" cy="15" r="5" fill="#8B5CF6"/>
+                                    <circle cx="0" cy="15" r="10" stroke="#8B5CF6" stroke-width="1" opacity="0.4" class="dm-svg-pulse-node"/>
+
+                                    <!-- Center Intelligence Core Node -->
+                                    <circle cx="45" cy="65" r="9" fill="#2563EB" filter="drop-shadow(0 0 10px rgba(59,130,246,0.8))"/>
+                                    <circle cx="45" cy="65" r="18" stroke="#3B82F6" stroke-width="1.5" opacity="0.3" class="dm-svg-pulse-node"/>
+                                    <polygon points="45,59 50,68 40,68" fill="#FFFFFF"/>
+
+                                    <!-- Bottom Node -->
+                                    <circle cx="0" cy="115" r="5" fill="#10B981"/>
+                                    <circle cx="0" cy="115" r="10" stroke="#10B981" stroke-width="1" opacity="0.4" class="dm-svg-pulse-node"/>
+
+                                    <!-- Connections from Core to Synthesizer -->
+                                    <line x1="0" y1="15" x2="45" y2="65" stroke="rgba(139,92,246,0.6)" stroke-width="1.5"/>
+                                    <line x1="0" y1="115" x2="45" y2="65" stroke="rgba(16,185,129,0.6)" stroke-width="1.5"/>
+                                    <line x1="45" y1="65" x2="120" y2="65" stroke="#60A5FA" stroke-width="2"/>
+                                </g>
+
+                                <!-- Right: Synthesis Answer Card Outline -->
+                                <g transform="translate(345, 35)">
+                                    <rect x="0" y="0" width="100" height="95" rx="6" fill="#0C101D" stroke="#10B981" stroke-width="1.5"/>
+                                    <!-- Header pill -->
+                                    <rect x="10" y="10" width="55" height="10" rx="3" fill="rgba(16,185,129,0.2)"/>
+                                    <text x="14" y="18" fill="#10B981" font-size="7" font-family="'JetBrains Mono', Consolas" font-weight="700">VERIFIED // 94%</text>
+                                    <line x1="10" y1="32" x2="90" y2="32" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+                                    <line x1="10" y1="42" x2="85" y2="42" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+                                    <line x1="10" y1="52" x2="75" y2="52" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+                                    <rect x="10" y="66" width="45" height="14" rx="3" fill="rgba(59,130,246,0.15)"/>
+                                    <text x="14" y="76" fill="#60A5FA" font-size="7" font-family="'JetBrains Mono', Consolas">p.5 Chunk #2</text>
+                                </g>
+
+                                <!-- Gradient Definitions -->
+                                <defs>
+                                    <linearGradient id="dmGradLine1" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#3B82F6"/>
+                                        <stop offset="100%" stop-color="#8B5CF6"/>
+                                    </linearGradient>
+                                    <linearGradient id="dmGradLine2" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#3B82F6"/>
+                                        <stop offset="100%" stop-color="#60A5FA"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
     <!-- Mobile Segmented View Navigation (visible only on small screens < 992px) -->
-    <div class="container-fluid px-2 pt-2 d-lg-none">
+    <div class="container-fluid px-3 pt-3 d-lg-none">
         <div class="dm-mobile-tabs" role="tablist">
             <button type="button" class="dm-mobile-tab-btn active" id="tabBtnDocs" data-target="colDocs">
                 <i class="bi bi-folder2-open"></i> Documents (<span id="dmMobileDocCount">{{ documents|length }}</span>)
             </button>
             <button type="button" class="dm-mobile-tab-btn" id="tabBtnChat" data-target="colChat">
-                <i class="bi bi-chat-left-dots"></i> Chat
+                <i class="bi bi-chat-left-dots"></i> Conversation
             </button>
             <button type="button" class="dm-mobile-tab-btn" id="tabBtnSources" data-target="colSources">
-                <i class="bi bi-quote"></i> Sources (<span id="dmMobileSourceCount">0</span>)
+                <i class="bi bi-quote"></i> Citations (<span id="dmMobileSourceCount">0</span>)
             </button>
         </div>
     </div>
 
     <!-- Main Workspace Dashboard: 3 Balanced Panels on Desktop -->
-    <main class="container-fluid px-2 px-xl-4 py-3">
+    <main class="container-fluid px-3 px-xl-4 dm-studio-workspace" id="dmStudioWorkspace">
         <div class="row g-3 dm-dashboard-grid">
             
             <!-- ========================================================= -->
@@ -118,7 +259,7 @@
                             <h2 class="dm-panel-title">
                                 <i class="bi bi-files text-primary"></i> Your Documents
                             </h2>
-                            <div class="dm-panel-subtitle">Document Repository &bull; Upload & manage knowledge base files</div>
+                            <div class="dm-panel-subtitle">Document Repository // Vector Ingestion</div>
                         </div>
                         <span id="dmDocCountBadge" class="dm-counter-badge">
                             {{ documents|length }} file{{ documents|length|pluralize }}
@@ -138,7 +279,7 @@
                             <div class="d-flex justify-content-center gap-2">
                                 <span class="dm-format-pill badge-pdf-pill"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</span>
                                 <span class="dm-format-pill badge-txt-pill"><i class="bi bi-file-earmark-text me-1"></i>TXT</span>
-                                <span class="dm-format-pill badge-size-pill">Max 10 MB</span>
+                                <span class="dm-format-pill badge-size-pill">MAX 10 MB</span>
                             </div>
                         </div>
 
@@ -148,10 +289,10 @@
                         <!-- Document List Header -->
                         <div class="d-flex justify-content-between align-items-center mb-2 px-1">
                             <span class="dm-section-eyebrow">
-                                <i class="bi bi-layers-fill me-1 text-primary"></i> Indexed Files
+                                <i class="bi bi-layers me-1 text-primary"></i> Indexed Files
                             </span>
                             <span class="dm-status-tag" id="dmListStatus">
-                                {% if documents %}Ready to query{% else %}Awaiting files{% endif %}
+                                {% if documents %}READY TO QUERY{% else %}AWAITING FILES{% endif %}
                             </span>
                         </div>
 
@@ -163,9 +304,9 @@
                                     <div class="text-truncate me-2">
                                         <div class="d-flex align-items-center gap-2 mb-1">
                                             {% if doc.file_type == '.pdf' %}
-                                                <span class="dm-file-badge badge-pdf"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</span>
+                                                <span class="dm-file-badge badge-pdf">PDF</span>
                                             {% else %}
-                                                <span class="dm-file-badge badge-txt"><i class="bi bi-file-earmark-text me-1"></i>TXT</span>
+                                                <span class="dm-file-badge badge-txt">TXT</span>
                                             {% endif %}
                                             <span class="fw-semibold text-truncate small dm-doc-title" title="{{ doc.original_name }}">{{ doc.original_name }}</span>
                                         </div>
@@ -178,7 +319,7 @@
                                         </div>
                                     </div>
                                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
-                                        <button class="btn btn-doc-action btn-summarize-doc" data-name="{{ doc.original_name }}" title="Summarize this document">
+                                        <button class="btn btn-doc-action btn-summarize-doc" data-name="{{ doc.original_name }}" title="Summarize document">
                                             <i class="bi bi-lightning-charge"></i>
                                         </button>
                                         <button class="btn btn-doc-action btn-replace-doc" data-id="{{ doc.id }}" data-name="{{ doc.original_name }}" title="Replace document">
@@ -192,7 +333,7 @@
                                 {% endfor %}
                             {% else %}
                                 <div class="text-center py-5 dm-empty-docs-box" id="dmEmptyDocsMessage">
-                                    <div class="dm-empty-circle mx-auto mb-2">
+                                    <div class="dm-empty-symbol">
                                         <i class="bi bi-folder-plus text-primary fs-3"></i>
                                     </div>
                                     <div class="fw-bold dm-empty-title">No documents uploaded yet</div>
@@ -204,12 +345,12 @@
                         <!-- Technical Footnote / Architecture Bar -->
                         <div class="mt-auto pt-2 dm-architecture-bar">
                             <div class="d-flex justify-content-between mb-1">
-                                <span><i class="bi bi-shield-check text-success me-1"></i> Grounding:</span>
-                                <span class="fw-semibold text-success">Strict RAG</span>
+                                <span><i class="bi bi-shield-check text-success me-1"></i> GROUNDING:</span>
+                                <span class="fw-semibold text-success">STRICT CONTEXT</span>
                             </div>
                             <div class="d-flex justify-content-between">
-                                <span><i class="bi bi-database text-primary me-1"></i> Vector Index:</span>
-                                <span class="dm-meta-soft">ChromaDB (Dense Vectors)</span>
+                                <span><i class="bi bi-database text-primary me-1"></i> VECTOR STORE:</span>
+                                <span>ChromaDB (384d)</span>
                             </div>
                         </div>
 
@@ -218,7 +359,7 @@
             </div>
 
             <!-- ========================================================= -->
-            <!-- 2. PANEL B: AI Chat Workspace (Center Panel)               -->
+            <!-- 2. PANEL B: AI Conversation Workspace (Center Panel)       -->
             <!-- ========================================================= -->
             <div class="col-lg-6 col-xl-6 dm-column-panel" id="colChat">
                 <div class="dm-panel-card">
@@ -227,16 +368,13 @@
                     <div class="dm-panel-header">
                         <div>
                             <h2 class="dm-panel-title">
-                                <i class="bi bi-chat-left-dots text-primary"></i> Chat with your Documents
+                                <i class="bi bi-chat-left-dots text-primary"></i> AI Conversation Canvas
                             </h2>
-                            <div class="dm-panel-subtitle">Synthesizing answers verified with ChromaDB vector search</div>
+                            <div class="dm-panel-subtitle">Context-Grounded Neural Synthesis</div>
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="dm-guardrail-badge d-none d-sm-inline-flex">
-                                <i class="bi bi-shield-lock me-1"></i> Verified Citations
-                            </span>
                             <button type="button" id="dmClearChatBtn" class="btn btn-sm dm-btn-ghost" title="Clear chat history">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i> <span class="d-none d-md-inline">Clear Chat</span>
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> <span class="d-none d-md-inline">Clear Canvas</span>
                             </button>
                         </div>
                     </div>
@@ -250,24 +388,24 @@
                             {% if documents %}
                                 <!-- State A: Documents already uploaded -->
                                 <div id="dmHeroWithDocs">
-                                    <div class="dm-welcome-hero-icon">
-                                        <i class="bi bi-chat-quote"></i>
+                                    <div class="dm-welcome-symbol">
+                                        <i class="bi bi-cpu text-primary"></i>
                                     </div>
-                                    <h1 class="dm-welcome-title">Chat with your Documents</h1>
+                                    <h1 class="dm-welcome-title">Neural Knowledge Engine Ready</h1>
                                     <div class="dm-welcome-subtitle">
-                                        Ask questions and get instant, grounded answers with exact source citations from your uploaded files.
+                                        Ask questions and get instant, grounded answers verified directly against semantic vector chunks in your uploaded documents.
                                     </div>
 
-                                    <!-- Suggested Prompt Chips (Requested 4 exact prompts) -->
-                                    <div class="dm-chips-label text-muted small mb-2 fw-medium">Suggested queries:</div>
+                                    <!-- Suggested Prompt Chips -->
+                                    <div class="dm-chips-label mb-2 fw-medium">Suggested research prompts:</div>
                                     <div class="d-flex flex-wrap justify-content-center gap-2" id="dmPromptChipsContainer">
                                         <button class="dm-pill-chip" data-prompt="Summarize this document and highlight its core concepts and key takeaways.">
                                             <i class="bi bi-file-earmark-text text-primary"></i> Summarize this document
                                         </button>
                                         <button class="dm-pill-chip" data-prompt="What are the key findings, definitions, and concepts explained in the text?">
-                                            <i class="bi bi-lightbulb text-warning"></i> What are the key findings?
+                                            <i class="bi bi-lightbulb text-warning"></i> Find the key insights
                                         </button>
-                                        <button class="dm-pill-chip" data-prompt="Explain the main concepts in clear, easy to understand terms.">
+                                        <button class="dm-pill-chip" data-prompt="Explain the main concepts of this document in clear, easy to understand terms.">
                                             <i class="bi bi-compass text-info"></i> Explain the main concepts
                                         </button>
                                         <button class="dm-pill-chip" data-prompt="What are the main conclusions and practical applications discussed?">
@@ -278,40 +416,40 @@
                             {% else %}
                                 <!-- State B: Empty Knowledge Base before upload -->
                                 <div id="dmHeroEmptyDocs">
-                                    <div class="dm-welcome-hero-icon">
-                                        <i class="bi bi-cloud-arrow-up"></i>
+                                    <div class="dm-welcome-symbol">
+                                        <i class="bi bi-cloud-arrow-up text-primary"></i>
                                     </div>
                                     <h1 class="dm-welcome-title">Welcome to DocuMind AI</h1>
                                     <div class="dm-welcome-subtitle">
-                                        Chat with your documents. Discover insights instantly. Upload a PDF or text file on the left to start.
+                                        Transform unstructured PDFs and notes into a verified neural query engine. Ingest your first document to activate vector synthesis.
                                     </div>
 
                                     <!-- 3 Feature Highlight Cards -->
                                     <div class="row g-2 text-start mb-4 justify-content-center">
                                         <div class="col-sm-4">
                                             <div class="dm-feature-card">
-                                                <div class="dm-feature-icon-badge text-primary"><i class="bi bi-database-check"></i></div>
+                                                <div class="dm-feature-icon text-primary"><i class="bi bi-database-check"></i></div>
                                                 <div class="dm-feature-title">ChromaDB Vectors</div>
-                                                <div class="dm-feature-text">Semantic search across dense document chunks.</div>
+                                                <div class="dm-feature-text">Dense semantic indexing across multi-page texts.</div>
                                             </div>
                                         </div>
                                         <div class="col-sm-4">
                                             <div class="dm-feature-card">
-                                                <div class="dm-feature-icon-badge text-success"><i class="bi bi-shield-check"></i></div>
-                                                <div class="dm-feature-title">Strict RAG Grounding</div>
-                                                <div class="dm-feature-text">Answers strictly from context — zero hallucinations.</div>
+                                                <div class="dm-feature-icon text-success"><i class="bi bi-shield-check"></i></div>
+                                                <div class="dm-feature-title">Strict Grounding</div>
+                                                <div class="dm-feature-text">Answers strictly from context — zero speculative hallucinations.</div>
                                             </div>
                                         </div>
                                         <div class="col-sm-4">
                                             <div class="dm-feature-card">
-                                                <div class="dm-feature-icon-badge text-primary"><i class="bi bi-quote"></i></div>
-                                                <div class="dm-feature-title">Verified Citations</div>
-                                                <div class="dm-feature-text">Exact page numbers and relevance matches.</div>
+                                                <div class="dm-feature-icon text-primary"><i class="bi bi-quote"></i></div>
+                                                <div class="dm-feature-title">Verifiable Evidence</div>
+                                                <div class="dm-feature-text">Exact page references and cosine match scores.</div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold d-inline-flex align-items-center gap-2" id="dmHeroUploadBtn">
+                                    <button type="button" class="dm-btn-primary mx-auto" id="dmHeroUploadBtn">
                                         <i class="bi bi-cloud-arrow-up"></i> Upload Your First Document
                                     </button>
                                 </div>
@@ -330,7 +468,7 @@
                                 <i class="bi bi-file-earmark-text text-primary"></i> <span>Summarize</span>
                             </button>
                             <button type="button" class="btn btn-sm dm-quick-pill" data-action="key_findings" title="Key findings">
-                                <i class="bi bi-lightbulb text-warning"></i> <span>Key Findings</span>
+                                <i class="bi bi-lightbulb text-warning"></i> <span>Key Insights</span>
                             </button>
                             <button type="button" class="btn btn-sm dm-quick-pill" data-action="explain_simply" title="Explain concepts">
                                 <i class="bi bi-compass text-info"></i> <span>Main Concepts</span>
@@ -372,7 +510,7 @@
                                 </button>
 
                                 <button type="submit" id="dmSendBtn" class="btn dm-btn-send" aria-label="Send query">
-                                    <span id="dmSendBtnText">Send</span>
+                                    <span id="dmSendBtnText">Transmitting</span>
                                     <i class="bi bi-arrow-up-circle-fill" id="dmSendBtnIcon"></i>
                                 </button>
                             </div>
@@ -380,7 +518,7 @@
                         
                         <div class="d-flex justify-content-between align-items-center mt-2 px-1 dm-footnote-text">
                             <span class="text-muted small"><i class="bi bi-shield-check text-success me-1"></i> Grounded strictly in uploaded documents</span>
-                            <span class="text-muted small d-none d-sm-inline">Press <kbd class="dm-kbd">Enter ↵</kbd> to send</span>
+                            <span class="text-muted small d-none d-sm-inline">Press <kbd class="dm-kbd">Enter ↵</kbd> to transmit</span>
                         </div>
                     </div>
 
@@ -388,7 +526,7 @@
             </div>
 
             <!-- ========================================================= -->
-            <!-- 3. PANEL C: Sources & Citations (Right Panel)              -->
+            <!-- 3. PANEL C: Source Intelligence & Evidence (Right Panel)   -->
             <!-- ========================================================= -->
             <div class="col-lg-3 col-xl-3 dm-column-panel" id="colSources">
                 <div class="dm-panel-card">
@@ -397,9 +535,9 @@
                     <div class="dm-panel-header">
                         <div>
                             <h2 class="dm-panel-title">
-                                <i class="bi bi-quote text-primary"></i> Sources & Citations
+                                <i class="bi bi-quote text-primary"></i> Source Intelligence
                             </h2>
-                            <div class="dm-panel-subtitle">Verified passages retrieved from ChromaDB</div>
+                            <div class="dm-panel-subtitle">Retrieved Latent Evidence // Cosine Ranked</div>
                         </div>
                         <span id="dmSourcesCountBadge" class="dm-counter-badge">
                             0 passages
@@ -419,17 +557,17 @@
                         <!-- Scrollable Sources List Container -->
                         <div class="flex-grow-1 overflow-y-auto pe-1" id="dmSourcesContainer">
                             <div class="text-center py-5 dm-empty-sources-box" id="dmEmptySourcesMessage">
-                                <div class="dm-empty-circle mx-auto mb-2">
-                                    <i class="bi bi-card-text text-secondary fs-3"></i>
+                                <div class="dm-empty-symbol">
+                                    <i class="bi bi-radar text-secondary fs-3"></i>
                                 </div>
-                                <div class="fw-bold dm-empty-title">No sources retrieved yet</div>
-                                <div class="dm-empty-subtitle mt-1">Ask a question to view retrieved chunks, relevance scores, and verifiable page citations.</div>
+                                <div class="fw-bold dm-empty-title">No citations retrieved yet</div>
+                                <div class="dm-empty-subtitle mt-1">Submit a question to extract ranked passages with exact page citations and relevance scores.</div>
                             </div>
                         </div>
 
                         <!-- Sources Panel Footer -->
-                        <div class="mt-auto pt-2 border-top text-muted small d-flex justify-content-between align-items-center" style="font-size: 0.74rem;">
-                            <span><i class="bi bi-check-circle-fill text-success me-1"></i> Dense Cosine Match</span>
+                        <div class="mt-auto pt-2 border-top text-muted small d-flex justify-content-between align-items-center" style="font-size: 0.72rem;">
+                            <span><i class="bi bi-check-circle-fill text-success me-1"></i> Dense Cosine Search</span>
                             <span id="dmSourcesFooterNote">Zero Hallucinations</span>
                         </div>
 
@@ -448,7 +586,7 @@
                     <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="apiKeyModalLabel">
                         <i class="bi bi-key-fill text-warning"></i> Configure Gemini API Key
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <p class="small mb-3 text-muted">
@@ -458,12 +596,12 @@
                         <div class="mb-3">
                             <label for="modalApiKeyInput" class="form-label fw-semibold small">Google Gemini API Key</label>
                             <input type="password" class="form-control dm-modal-input" id="modalApiKeyInput" placeholder="AIzaSy..." required autocomplete="off">
-                            <div class="form-text small mt-1">
-                                Need a key? <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" class="dm-modal-link">Get a free Gemini API key from Google AI Studio</a>.
+                            <div class="form-text small mt-1 text-muted">
+                                Need a key? <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" class="text-primary text-decoration-none">Get a free Gemini API key from Google AI Studio</a>.
                             </div>
                         </div>
                         <div id="modalKeyAlert" class="d-none alert small py-2 px-3 mb-3"></div>
-                        <button type="submit" id="saveKeyBtn" class="btn dm-btn-primary-gradient w-100 py-2 justify-content-center">
+                        <button type="submit" id="saveKeyBtn" class="btn dm-btn-primary w-100 py-2 justify-content-center">
                             <i class="bi bi-check2-circle me-1"></i> Save & Activate API Key
                         </button>
                     </form>
@@ -480,7 +618,7 @@
                     <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="voicePrivacyModalLabel">
                         <i class="bi bi-shield-check text-success"></i> Voice Recognition & Privacy Notice
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="d-flex align-items-start gap-3 mb-3">
@@ -549,7 +687,7 @@
                         <button type="button" class="btn btn-sm btn-outline-secondary dm-zoom-ctrl-btn" id="dmZoomResetBtn" title="Reset zoom">
                             <i class="bi bi-arrows-angle-contract"></i>
                         </button>
-                        <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                 </div>
                 <div class="modal-body p-4 text-center overflow-auto" id="dmDiagramZoomModalBody" style="min-height: 480px; max-height: 80vh;">

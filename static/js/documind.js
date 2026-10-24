@@ -56,12 +56,12 @@ document.addEventListener('DOMContentLoaded', () => {
         initMermaidTheme(theme);
     }
 
-    const savedTheme = localStorage.getItem('documind-theme') || 'light';
+    const savedTheme = localStorage.getItem('documind-theme') || 'dark';
     applyTheme(savedTheme);
 
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', () => {
-            const current = htmlEl.getAttribute('data-theme') || 'light';
+            const current = htmlEl.getAttribute('data-theme') || 'dark';
             const next = current === 'dark' ? 'light' : 'dark';
             applyTheme(next);
         });
@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             suggestedChips: [
                 { icon: 'bi-file-earmark-text', text: 'Summarize this document', prompt: 'Summarize this document and highlight its core concepts and key takeaways.' },
-                { icon: 'bi-lightbulb', text: 'What are the key findings?', prompt: 'What are the key findings, definitions, and concepts explained in the text?' },
+                { icon: 'bi-lightbulb', text: 'Find the key insights', prompt: 'What are the key findings, definitions, and concepts explained in the text?' },
                 { icon: 'bi-compass', text: 'Explain the main concepts', prompt: 'Explain the main concepts of this document in clear, easy to understand terms.' },
                 { icon: 'bi-check2-circle', text: 'What are the conclusions?', prompt: 'What are the main conclusions and practical applications discussed?' }
             ],
@@ -462,6 +462,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hero "Upload First Document" Click Handler
     if (heroUploadBtn && fileInput) {
         heroUploadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+    }
+
+    const heroTriggerUpload = document.getElementById('dmHeroTriggerUpload');
+    if (heroTriggerUpload && fileInput) {
+        heroTriggerUpload.addEventListener('click', () => {
             fileInput.click();
         });
     }
