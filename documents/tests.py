@@ -330,14 +330,26 @@ class UnauthenticatedSecurityTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.url.startswith('/?next=') or '/login' in response.url)
 
-    def test_root_unauthenticated_displays_signin_page(self):
-        """Root URL ('/') must directly display the Sign In page for unauthenticated visitors."""
+    def test_root_unauthenticated_displays_welcome_screen(self):
+        """Root URL ('/') displays the premium Welcome Screen with authors for unauthenticated visitors."""
         response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "DocuMind")
+        self.assertContains(response, "Your documents. Your knowledge. One intelligent space.")
+        self.assertContains(response, "DESIGNED &amp; DEVELOPED BY")
+        self.assertContains(response, "Pranav Bavane")
+        self.assertContains(response, "Aditi Pikalmunde")
+        self.assertContains(response, "AI &bull; RAG &bull; Smart Learning")
+        self.assertContains(response, "Get Started")
+        self.assertContains(response, "Create Account")
+
+    def test_welcome_get_started_navigates_to_login_page(self):
+        """Get Started button target ('/accounts/login/') successfully loads the Sign In page."""
+        response = self.client.get(reverse('account_login'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Sign In")
         self.assertContains(response, "Continue with Google")
         self.assertContains(response, "Email or Username")
-        self.assertContains(response, "Create free account")
 
     def test_root_authenticated_redirects_to_dashboard(self):
         """Authenticated users visiting root URL ('/') are redirected directly to dashboard."""
@@ -347,11 +359,11 @@ class UnauthenticatedSecurityTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse('dashboard'))
 
-    def test_dashboard_unauthenticated_redirects_to_root(self):
-        """Unauthenticated access to '/dashboard/' redirects to root login page with next param."""
+    def test_dashboard_unauthenticated_redirects_to_login(self):
+        """Unauthenticated access to '/dashboard/' redirects to login page with next param."""
         response = self.client.get(reverse('dashboard'))
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.url.startswith('/?next=') or '/login' in response.url)
+        self.assertTrue('/accounts/login/' in response.url or '/login' in response.url)
 
     def test_dashboard_authenticated_loads_successfully(self):
         """Authenticated access to '/dashboard/' renders the DocuMind AI dashboard."""

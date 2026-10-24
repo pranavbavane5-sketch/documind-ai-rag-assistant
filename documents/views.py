@@ -63,7 +63,7 @@ def root_view(request, *args, **kwargs):
     Root application entry point (URL: '/').
     - If user is authenticated administrator: redirects directly to '/admin-dashboard/'.
     - If user is authenticated student: redirects directly to '/dashboard/'.
-    - If user is unauthenticated: renders the styled DocuMind AI Sign In page.
+    - If user is unauthenticated: renders the premium DocuMind AI Welcome screen with author attribution.
     """
     if request.user.is_authenticated:
         is_admin = (
@@ -74,7 +74,8 @@ def root_view(request, *args, **kwargs):
         if is_admin:
             return redirect('admin_dashboard')
         return redirect('dashboard')
-    return LoginView.as_view()(request, *args, **kwargs)
+    
+    return render(request, 'documents/welcome.html')
 
 
 @login_required
