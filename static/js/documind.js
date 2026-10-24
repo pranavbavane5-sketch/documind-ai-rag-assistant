@@ -1,6 +1,6 @@
 /**
  * DocuMind AI — Modern AI SaaS Client Engine
- * Asynchronous document ingestion, streaming chat answers, and inline verifiable citations.
+ * Asynchronous document ingestion, 3-panel workspace, streaming chat answers, and verified citations.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -27,13 +27,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearChatBtn = document.getElementById('dmClearChatBtn');
     const heroUploadBtn = document.getElementById('dmHeroUploadBtn');
 
+    // DOM Elements - Sources Panel
+    const sourcesContainer = document.getElementById('dmSourcesContainer');
+    const sourcesCountBadge = document.getElementById('dmSourcesCountBadge');
+    const mobileSourceCount = document.getElementById('dmMobileSourceCount');
+    const activeQueryBanner = document.getElementById('dmActiveQueryBanner');
+    const activeQueryText = document.getElementById('dmActiveQueryText');
+
     // Mobile View Toggle Elements
     const tabBtnDocs = document.getElementById('tabBtnDocs');
     const tabBtnChat = document.getElementById('tabBtnChat');
+    const tabBtnSources = document.getElementById('tabBtnSources');
     const colDocs = document.getElementById('colDocs');
     const colChat = document.getElementById('colChat');
+    const colSources = document.getElementById('colSources');
 
-    // Theme Switcher (Dark Mode / Light Mode)
+    // Theme Switcher (Light Mode default / Dark Mode)
     const themeToggleBtn = document.getElementById('dmThemeToggle');
     const themeIcon = document.getElementById('dmThemeIcon');
     const htmlEl = document.documentElement;
@@ -42,24 +51,24 @@ document.addEventListener('DOMContentLoaded', () => {
         htmlEl.setAttribute('data-theme', theme);
         localStorage.setItem('documind-theme', theme);
         if (themeIcon) {
-            themeIcon.className = theme === 'dark' ? 'bi bi-sun-fill text-warning' : 'bi bi-moon-stars-fill text-dark';
+            themeIcon.className = theme === 'dark' ? 'bi bi-sun text-warning' : 'bi bi-moon-stars text-secondary';
         }
         initMermaidTheme(theme);
     }
 
-    const savedTheme = localStorage.getItem('documind-theme') || 'dark';
+    const savedTheme = localStorage.getItem('documind-theme') || 'light';
     applyTheme(savedTheme);
 
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', () => {
-            const current = htmlEl.getAttribute('data-theme') || 'dark';
+            const current = htmlEl.getAttribute('data-theme') || 'light';
             const next = current === 'dark' ? 'light' : 'dark';
             applyTheme(next);
         });
     }
 
     // =========================================================================
-    // Smart Visual Learning Engine: Diagram Zoom & High-Resolution Viewer
+    // Diagram Zoom & High-Resolution Viewer Modal
     // =========================================================================
     let currentZoomScale = 1.0;
     const zoomModalEl = document.getElementById('dmDiagramZoomModal');
@@ -100,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // Initialize Mermaid with dynamic theme support
     function initMermaidTheme(theme) {
         if (window.mermaid) {
             try {
@@ -127,12 +135,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.warn('Mermaid rendering syntax error:', err);
             containerEl.innerHTML = `
-                <div class="dm-diagram-error-fallback">
-                    <div class="d-flex align-items-center gap-1 text-danger fw-semibold small mb-1">
+                <div class="alert alert-warning small py-2 px-3">
+                    <div class="d-flex align-items-center gap-1 text-warning fw-semibold small mb-1">
                         <i class="bi bi-exclamation-triangle-fill"></i> Diagram Formatting Fallback
                     </div>
-                    <div class="text-muted small">Could not render graphical layout. Showing structured diagram definition:</div>
-                    <pre><code>${escapeHtml(mermaidCode)}</code></pre>
+                    <pre class="m-0 mt-1"><code>${escapeHtml(mermaidCode)}</code></pre>
                 </div>
             `;
         }
@@ -142,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!window.Chart || !canvasEl) return;
         try {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            const textColor = isDark ? '#cbd5e1' : '#334155';
+            const textColor = isDark ? '#E2E8F0' : '#1E293B';
             const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
 
             const cfg = JSON.parse(JSON.stringify(chartConfig));
@@ -173,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (canvasEl.parentElement) {
                 canvasEl.parentElement.innerHTML = `
                     <div class="alert alert-warning small py-2 px-3">
-                        <i class="bi bi-exclamation-circle me-1"></i> Could not display interactive chart: ${escapeHtml(err.message)}
+                        <i class="bi bi-exclamation-circle me-1"></i> Could not display chart: ${escapeHtml(err.message)}
                     </div>
                 `;
             }
@@ -181,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================================
-    // Multilingual System Configuration (English, Hindi, Marathi)
+    // Multilingual Prompts Configuration
     // =========================================================================
     const LANG_CONFIG = {
         en: {
@@ -190,20 +197,19 @@ document.addEventListener('DOMContentLoaded', () => {
             locale: 'en-IN',
             fallbackLocales: ['en-US', 'en-GB', 'en'],
             quickPrompts: {
-                summarize: 'Summarize this document and highlight its core concepts, methodology, and key takeaways.',
+                summarize: 'Summarize this document and highlight its core concepts and key takeaways.',
                 key_findings: 'What are the key findings, definitions, and concepts explained in the text?',
-                explain_simply: 'Explain the main concepts of this document simply with easy-to-understand examples.',
-                gen_questions: 'Generate 5 insightful review and study questions based on this document with answers grounded in the text.'
+                explain_simply: 'Explain the main concepts of this document in clear, easy to understand terms.',
+                conclusions: 'What are the main conclusions and practical applications discussed?'
             },
             suggestedChips: [
-                { icon: 'bi-file-earmark-text-fill', class: 'chip-violet', text: 'Summarize this document', prompt: 'Summarize this document and highlight its core concepts, methodology, and key takeaways.' },
-                { icon: 'bi-lightbulb-fill', class: 'chip-cyan', text: 'Key definitions & concepts', prompt: 'What are the key findings, definitions, and concepts explained in the text?' },
-                { icon: 'bi-check-circle-fill', class: 'chip-emerald', text: 'Main conclusions & takeaways', prompt: 'What are the main conclusions and practical applications discussed?' }
+                { icon: 'bi-file-earmark-text', text: 'Summarize this document', prompt: 'Summarize this document and highlight its core concepts and key takeaways.' },
+                { icon: 'bi-lightbulb', text: 'What are the key findings?', prompt: 'What are the key findings, definitions, and concepts explained in the text?' },
+                { icon: 'bi-compass', text: 'Explain the main concepts', prompt: 'Explain the main concepts of this document in clear, easy to understand terms.' },
+                { icon: 'bi-check2-circle', text: 'What are the conclusions?', prompt: 'What are the main conclusions and practical applications discussed?' }
             ],
             listeningText: 'Listening in English (en-IN)... Speak your question',
-            noSpeechMsg: 'No speech was detected. Please click the mic and try again.',
-            unsupportedSpeech: 'Speech recognition is not supported in this browser. Please type your query.',
-            unsupportedVoice: 'No native English voice found in your browser/OS. Using default system voice.'
+            noSpeechMsg: 'No speech was detected. Please click the mic and try again.'
         },
         hi: {
             code: 'hi',
@@ -211,20 +217,19 @@ document.addEventListener('DOMContentLoaded', () => {
             locale: 'hi-IN',
             fallbackLocales: ['hi'],
             quickPrompts: {
-                summarize: 'इस दस्तावेज़ का एक व्यापक सारांश प्रस्तुत करें और इसके मुख्य निष्कर्ष, विधियां और महत्वपूर्ण बिंदु बताएं।',
+                summarize: 'इस दस्तावेज़ का एक व्यापक सारांश प्रस्तुत करें और इसके मुख्य निष्कर्ष और महत्वपूर्ण बिंदु बताएं।',
                 key_findings: 'इस दस्तावेज़ में समझाए गए मुख्य निष्कर्ष, परिभाषाएँ और मूल अवधारणाएँ क्या हैं?',
-                explain_simply: 'इस दस्तावेज़ के मुख्य विषय को सरल उदाहरणों के साथ आसानी से समझाएं।',
-                gen_questions: 'इस दस्तावेज़ पर आधारित 5 महत्वपूर्ण प्रश्न और उनके सत्यापित उत्तर तैयार करें।'
+                explain_simply: 'इस दस्तावेज़ के मुख्य विषय को सरल शब्दों में आसानी से समझाएं।',
+                conclusions: 'इस दस्तावेज़ के मुख्य निष्कर्ष और व्यावहारिक अनुप्रयोग क्या हैं?'
             },
             suggestedChips: [
-                { icon: 'bi-file-earmark-text-fill', class: 'chip-violet', text: 'दस्तावेज़ का सारांश दें', prompt: 'इस दस्तावेज़ का एक व्यापक सारांश प्रस्तुत करें और इसके मुख्य निष्कर्ष, विधियां और महत्वपूर्ण बिंदु बताएं।' },
-                { icon: 'bi-lightbulb-fill', class: 'chip-cyan', text: 'मुख्य निष्कर्ष और अवधारणाएं', prompt: 'इस दस्तावेज़ में समझाए गए मुख्य निष्कर्ष, परिभाषाएँ और मूल अवधारणाएँ क्या हैं?' },
-                { icon: 'bi-check-circle-fill', class: 'chip-emerald', text: 'सरल शब्दों में समझाएं', prompt: 'इस दस्तावेज़ के मुख्य विषय को सरल उदाहरणों के साथ आसानी से समझाएं।' }
+                { icon: 'bi-file-earmark-text', text: 'दस्तावेज़ का सारांश दें', prompt: 'इस दस्तावेज़ का एक व्यापक सारांश प्रस्तुत करें और इसके मुख्य निष्कर्ष और महत्वपूर्ण बिंदु बताएं।' },
+                { icon: 'bi-lightbulb', text: 'मुख्य निष्कर्ष क्या हैं?', prompt: 'इस दस्तावेज़ में समझाए गए मुख्य निष्कर्ष, परिभाषाएँ और मूल अवधारणाएँ क्या हैं?' },
+                { icon: 'bi-compass', text: 'मूल अवधारणाएं समझाएं', prompt: 'इस दस्तावेज़ के मुख्य विषय को सरल शब्दों में आसानी से समझाएं।' },
+                { icon: 'bi-check2-circle', text: 'मुख्य निष्कर्ष और परिणाम', prompt: 'इस दस्तावेज़ के मुख्य निष्कर्ष और व्यावहारिक अनुप्रयोग क्या हैं?' }
             ],
             listeningText: 'हिन्दी में सुन रहे हैं (hi-IN)... अपना प्रश्न बोलें',
-            noSpeechMsg: 'कोई आवाज़ नहीं सुनाई दी। कृपया माइक पर दोबारा क्लिक करें।',
-            unsupportedSpeech: 'आपके ब्राउज़र में हिन्दी वाक् पहचान समर्थित नहीं है। कृपया टाइप करें।',
-            unsupportedVoice: 'ब्राउज़र में हिन्दी आवाज़ नहीं मिली। मानक सिस्टम आवाज़ का उपयोग किया जा रहा है।'
+            noSpeechMsg: 'कोई आवाज़ नहीं सुनाई दी। कृपया माइक पर दोबारा क्लिक करें।'
         },
         mr: {
             code: 'mr',
@@ -232,20 +237,19 @@ document.addEventListener('DOMContentLoaded', () => {
             locale: 'mr-IN',
             fallbackLocales: ['mr', 'hi-IN'],
             quickPrompts: {
-                summarize: 'या दस्तऐवजाचा सर्वसमावेशक सारांश द्या आणि त्यातील मुख्य संकल्पना, पद्धती व निष्कर्ष स्पष्ट करा.',
+                summarize: 'या दस्तऐवजाचा सर्वसमावेशक सारांश द्या आणि त्यातील मुख्य संकल्पना व निष्कर्ष स्पष्ट करा.',
                 key_findings: 'दस्तऐवजातील प्रमुख निष्कर्ष, व्याख्या आणि महत्त्वाच्या संकल्पना कोणत्या आहेत?',
-                explain_simply: 'या दस्तऐवजाचा मुख्य विषय उदाहरणांसह सोप्या भाषेत समजावून सांगा.',
-                gen_questions: 'या दस्तऐवजावर आधारित 5 महत्त्वाचे प्रश्न आणि त्यांची सत्यापित उत्तरे तयार करा.'
+                explain_simply: 'या दस्तऐवजाचा मुख्य विषय सोप्या भाषेत समजावून सांगा.',
+                conclusions: 'या दस्तऐवजाचे मुख्य निष्कर्ष आणि व्यावहारिक उपयोग काय आहेत?'
             },
             suggestedChips: [
-                { icon: 'bi-file-earmark-text-fill', class: 'chip-violet', text: 'दस्तऐवजाचा सारांश द्या', prompt: 'या दस्तऐवजाचा सर्वसमावेशक सारांश द्या आणि त्यातील मुख्य संकल्पना, पद्धती व निष्कर्ष स्पष्ट करा.' },
-                { icon: 'bi-lightbulb-fill', class: 'chip-cyan', text: 'महत्त्वाचे निष्कर्ष व संकल्पना', prompt: 'दस्तऐवजातील प्रमुख निष्कर्ष, व्याख्या आणि महत्त्वाच्या संकल्पना कोणत्या आहेत?' },
-                { icon: 'bi-check-circle-fill', class: 'chip-emerald', text: 'सोप्या भाषेत स्पष्ट करा', prompt: 'या दस्तऐवजाचा मुख्य विषय उदाहरणांसह सोप्या भाषेत समजावून सांगा.' }
+                { icon: 'bi-file-earmark-text', text: 'दस्तऐवजाचा सारांश द्या', prompt: 'या दस्तऐवजाचा सर्वसमावेशक सारांश द्या आणि त्यातील मुख्य संकल्पना व निष्कर्ष स्पष्ट करा.' },
+                { icon: 'bi-lightbulb', text: 'प्रमुख निष्कर्ष कोणते आहेत?', prompt: 'दस्तऐवजातील प्रमुख निष्कर्ष, व्याख्या आणि महत्त्वाच्या संकल्पना कोणत्या आहेत?' },
+                { icon: 'bi-compass', text: 'मुख्य संकल्पना स्पष्ट करा', prompt: 'या दस्तऐवजाचा मुख्य विषय सोप्या भाषेत समजावून सांगा.' },
+                { icon: 'bi-check2-circle', text: 'मुख्य निष्कर्ष काय आहेत?', prompt: 'या दस्तऐवजाचे मुख्य निष्कर्ष आणि व्यावहारिक उपयोग काय आहेत?' }
             ],
             listeningText: 'मराठीत ऐकत आहे (mr-IN)... आपला प्रश्न बोला',
-            noSpeechMsg: 'कोणताही आवाज ऐकू आला नाही. कृपया माइकवर पुन्हा क्लिक करा.',
-            unsupportedSpeech: 'ब्राउझरमध्ये मराठी भाषा ओळख समर्थित नाही. कृपया टाइप करा.',
-            unsupportedVoice: 'ब्राउझरमध्ये मराठी आवाज उपलब्ध नाही. मानक सिस्टम आवाजाचा वापर करत आहे.'
+            noSpeechMsg: 'कोणताही आवाज ऐकू आला नाही. कृपया माइकवर पुन्हा क्लिक करा.'
         }
     };
 
@@ -258,45 +262,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const cfg = LANG_CONFIG[langCode];
 
-        // Update dropdown item active states
         document.querySelectorAll('.dm-lang-opt').forEach(opt => {
-            if (opt.getAttribute('data-lang') === langCode) {
-                opt.classList.add('active');
-            } else {
-                opt.classList.remove('active');
-            }
+            opt.classList.toggle('active', opt.getAttribute('data-lang') === langCode);
         });
 
-        // Update header labels
         const langLabel = document.getElementById('dmSelectedLangLabel');
         if (langLabel) langLabel.textContent = cfg.label;
 
-        const localeTag = document.getElementById('dmActiveLocaleTag');
-        if (localeTag) localeTag.textContent = cfg.locale;
-
-        // Update bottom status badge
-        const activeBadge = document.getElementById('dmActiveLangBadge');
-        if (activeBadge) activeBadge.textContent = `${cfg.label} (${cfg.locale})`;
-
-        // Re-render suggested prompt chips for the new language
         updatePromptChips(langCode);
     }
 
-    // Attach Language selector listeners
     document.querySelectorAll('.dm-lang-opt').forEach(opt => {
         opt.addEventListener('click', () => {
             const lang = opt.getAttribute('data-lang');
             setLanguage(lang);
-            showToast(`Language set to ${LANG_CONFIG[lang].label} (${LANG_CONFIG[lang].locale})`, 'info');
+            showToast(`Language set to ${LANG_CONFIG[lang].label}`, 'info');
         });
     });
 
     // =========================================================================
-    // Feature 3: Text-to-Speech (TTS) Engine
+    // Text-to-Speech (TTS) Engine
     // =========================================================================
     let currentSpeakingBtn = null;
 
-    // Pre-cache voices when available
     if ('speechSynthesis' in window) {
         window.speechSynthesis.onvoiceschanged = () => {
             window.speechSynthesis.getVoices();
@@ -306,25 +294,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function cleanTextForSpeech(text) {
         if (!text) return '';
         let clean = text;
-        // Strip code blocks
         clean = clean.replace(/```[\s\S]*?```/g, ' ');
-        // Strip inline code
         clean = clean.replace(/`([^`]+)`/g, '$1');
-        // Strip citation references like [Doc: ...] or Chunk #1
         clean = clean.replace(/\[(?:Doc|Page|Chunk)[^\]]*\]/gi, ' ');
-        // Strip markdown headers
         clean = clean.replace(/^#{1,6}\s+/gm, ' ');
-        // Strip bold and italic
         clean = clean.replace(/\*\*([^*]+)\*\*/g, '$1');
         clean = clean.replace(/\*([^*]+)\*/g, '$1');
         clean = clean.replace(/__([^_]+)__/g, '$1');
         clean = clean.replace(/_([^_]+)_/g, '$1');
-        // Strip bullet symbols
         clean = clean.replace(/^[\s*-•\d+.]+/gm, ' ');
-        // Strip URLs and HTML tags
         clean = clean.replace(/https?:\/\/\S+/g, ' ');
         clean = clean.replace(/<[^>]+>/g, ' ');
-        // Collapse excess whitespace
         clean = clean.replace(/\s+/g, ' ').trim();
         return clean;
     }
@@ -336,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentSpeakingBtn) {
             currentSpeakingBtn.classList.remove('is-speaking');
             const icon = currentSpeakingBtn.querySelector('.dm-tts-icon');
-            if (icon) icon.className = 'bi bi-volume-up-fill dm-tts-icon';
+            if (icon) icon.className = 'bi bi-volume-up dm-tts-icon';
             const label = currentSpeakingBtn.querySelector('.dm-tts-label');
             if (label) label.textContent = 'Listen';
             currentSpeakingBtn = null;
@@ -349,7 +329,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // If clicking the currently active speaker, toggle stop
         if (currentSpeakingBtn === buttonEl && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
             stopSpeaking();
             return;
@@ -367,31 +346,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const voices = window.speechSynthesis.getVoices() || [];
         const cfg = LANG_CONFIG[langCode] || LANG_CONFIG.en;
 
-        let selectedVoice = null;
-        // 1. Exact locale match (e.g., 'hi-IN', 'mr-IN', 'en-IN')
-        selectedVoice = voices.find(v => v.lang && v.lang.toLowerCase() === cfg.locale.toLowerCase());
-        
-        // 2. Language prefix match (e.g. 'hi', 'mr', 'en')
-        if (!selectedVoice) {
-            selectedVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(cfg.code.toLowerCase()));
-        }
-
-        // 3. Fallback locales match
-        if (!selectedVoice && cfg.fallbackLocales) {
-            for (const fl of cfg.fallbackLocales) {
-                selectedVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(fl.toLowerCase()));
-                if (selectedVoice) break;
-            }
-        }
+        let selectedVoice = voices.find(v => v.lang && v.lang.toLowerCase() === cfg.locale.toLowerCase()) ||
+                            voices.find(v => v.lang && v.lang.toLowerCase().startsWith(cfg.code.toLowerCase()));
 
         if (selectedVoice) {
             utterance.voice = selectedVoice;
             utterance.lang = selectedVoice.lang;
         } else {
             utterance.lang = cfg.locale;
-            if (langCode !== 'en') {
-                showToast(`${cfg.label} voice not installed in system voices. Attempting browser playback.`, 'info');
-            }
         }
 
         utterance.rate = 1.0;
@@ -401,21 +363,13 @@ document.addEventListener('DOMContentLoaded', () => {
             currentSpeakingBtn = buttonEl;
             currentSpeakingBtn.classList.add('is-speaking');
             const icon = currentSpeakingBtn.querySelector('.dm-tts-icon');
-            if (icon) icon.className = 'bi bi-stop-circle-fill dm-tts-icon text-danger';
+            if (icon) icon.className = 'bi bi-stop-circle text-danger dm-tts-icon';
             const label = currentSpeakingBtn.querySelector('.dm-tts-label');
             if (label) label.textContent = 'Stop';
         };
 
-        utterance.onend = () => {
-            stopSpeaking();
-        };
-
-        utterance.onerror = (e) => {
-            stopSpeaking();
-            if (e.error !== 'interrupted' && e.error !== 'canceled') {
-                showToast('Voice playback encountered an error: ' + e.error, 'warning');
-            }
-        };
+        utterance.onend = () => stopSpeaking();
+        utterance.onerror = () => stopSpeaking();
 
         window.speechSynthesis.speak(utterance);
     }
@@ -434,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     }
 
-    // Lightweight, Safe Markdown Formatter for AI Responses
+    // Lightweight Markdown Formatter
     function formatMarkdown(rawText) {
         if (!rawText) return '';
         
@@ -448,54 +402,29 @@ document.addEventListener('DOMContentLoaded', () => {
         // Inline code: `code`
         safe = safe.replace(/`([^`]+)`/g, '<code class="dm-inline-code">$1</code>');
 
-        // Headings: ### Title or ## Title
-        safe = safe.replace(/^###\s+(.*$)/gm, '<h5 class="dm-answer-heading">$1</h5>');
-        safe = safe.replace(/^##\s+(.*$)/gm, '<h5 class="dm-answer-heading">$1</h5>');
+        // Headers
+        safe = safe.replace(/^### (.*$)/gim, '<h5 class="fw-bold mt-2 mb-1">$1</h5>');
+        safe = safe.replace(/^## (.*$)/gim, '<h4 class="fw-bold mt-3 mb-2">$1</h4>');
+        safe = safe.replace(/^# (.*$)/gim, '<h3 class="fw-bold mt-3 mb-2">$1</h3>');
 
-        // Bold: **text**
+        // Bold & Italic
         safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        safe = safe.replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
-        // Italic: *text* (when not list bullet)
-        safe = safe.replace(/(^|[^\*])\*([^\*]+)\*([^\*]|$)/g, '$1<em>$2</em>$3');
+        // Unordered lists
+        safe = safe.replace(/^\s*[-*]\s+(.*$)/gim, '<li>$1</li>');
+        safe = safe.replace(/(<li>.*<\/li>)/gms, '<ul class="my-1">$1</ul>');
 
-        // Unordered lists: lines starting with * or -
-        const lines = safe.split('\n');
-        let inList = false;
-        let formatted = [];
+        // Ordered lists
+        safe = safe.replace(/^\s*(\d+)\.\s+(.*$)/gim, '<li>$2</li>');
 
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            const bulletMatch = line.match(/^(\s*)([-*•]|\d+\.)\s+(.+)$/);
+        // Paragraph breaks
+        safe = safe.replace(/\n\n+/g, '</p><p>');
+        safe = safe.replace(/\n/g, '<br>');
 
-            if (bulletMatch) {
-                if (!inList) {
-                    formatted.push('<ul>');
-                    inList = true;
-                }
-                formatted.push(`<li>${bulletMatch[3]}</li>`);
-            } else {
-                if (inList) {
-                    formatted.push('</ul>');
-                    inList = false;
-                }
-                if (line.trim().length > 0) {
-                    // Check if already a header or pre block
-                    if (line.startsWith('<h5') || line.startsWith('<pre') || line.endsWith('</pre>')) {
-                        formatted.push(line);
-                    } else {
-                        formatted.push(`<p>${line}</p>`);
-                    }
-                }
-            }
-        }
-        if (inList) {
-            formatted.push('</ul>');
-        }
-
-        return formatted.join('\n');
+        return `<p>${safe}</p>`;
     }
 
-    // Auto-scroll chat to bottom
     function scrollChatToBottom() {
         if (chatStream) {
             chatStream.scrollTop = chatStream.scrollHeight;
@@ -506,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (queryInput) {
         queryInput.addEventListener('input', function() {
             this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 130) + 'px';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
         });
 
         queryInput.addEventListener('keydown', function(e) {
@@ -525,7 +454,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (welcomeHero) {
                 welcomeHero.classList.remove('d-none');
             }
-            showToast('Chat history cleared.', 'info');
+            renderSourcesPanel([], '');
+            showToast('Chat conversation cleared.', 'info');
         });
     }
 
@@ -536,48 +466,51 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Mobile View Tab Switcher
+    // =========================================================================
+    // Responsive Mobile 3-Tab Switcher (< 992px)
+    // =========================================================================
     function initMobileTabs() {
-        if (!tabBtnDocs || !tabBtnChat) return;
+        if (!tabBtnDocs || !tabBtnChat || !tabBtnSources) return;
 
         function setMobileTab(activeTab) {
             if (window.innerWidth >= 992) {
-                colDocs.classList.remove('active-mobile-panel');
-                colChat.classList.remove('active-mobile-panel');
+                colDocs?.classList.remove('active-mobile-panel');
+                colChat?.classList.remove('active-mobile-panel');
+                colSources?.classList.remove('active-mobile-panel');
                 return;
             }
 
-            if (activeTab === 'docs') {
-                tabBtnDocs.classList.add('active');
-                tabBtnChat.classList.remove('active');
-                colDocs.classList.add('active-mobile-panel');
-                colChat.classList.remove('active-mobile-panel');
-            } else {
-                tabBtnChat.classList.add('active');
-                tabBtnDocs.classList.remove('active');
-                colChat.classList.add('active-mobile-panel');
-                colDocs.classList.remove('active-mobile-panel');
-            }
+            tabBtnDocs.classList.toggle('active', activeTab === 'docs');
+            tabBtnChat.classList.toggle('active', activeTab === 'chat');
+            tabBtnSources.classList.toggle('active', activeTab === 'sources');
+
+            colDocs?.classList.toggle('active-mobile-panel', activeTab === 'docs');
+            colChat?.classList.toggle('active-mobile-panel', activeTab === 'chat');
+            colSources?.classList.toggle('active-mobile-panel', activeTab === 'sources');
         }
 
         tabBtnDocs.addEventListener('click', () => setMobileTab('docs'));
         tabBtnChat.addEventListener('click', () => setMobileTab('chat'));
+        tabBtnSources.addEventListener('click', () => setMobileTab('sources'));
 
-        // Initialize mobile state
         if (window.innerWidth < 992) {
-            setMobileTab('docs');
+            const docCount = document.querySelectorAll('.dm-document-card').length;
+            setMobileTab(docCount > 0 ? 'chat' : 'docs');
         }
 
         window.addEventListener('resize', () => {
             if (window.innerWidth >= 992) {
-                colDocs.classList.remove('active-mobile-panel');
-                colChat.classList.remove('active-mobile-panel');
+                colDocs?.classList.remove('active-mobile-panel');
+                colChat?.classList.remove('active-mobile-panel');
+                colSources?.classList.remove('active-mobile-panel');
             }
         });
     }
     initMobileTabs();
 
-    // Suggested question prompt chips
+    // =========================================================================
+    // Suggested Prompts Binding (4 Exact Prompts)
+    // =========================================================================
     function bindPromptChips() {
         document.querySelectorAll('.dm-pill-chip').forEach(chip => {
             chip.onclick = () => {
@@ -585,7 +518,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (queryInput) {
                     queryInput.value = promptText;
                     queryInput.dispatchEvent(new Event('input'));
-                    // On mobile, switch to chat tab if needed
                     if (window.innerWidth < 992 && tabBtnChat) {
                         tabBtnChat.click();
                     }
@@ -604,20 +536,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         cfg.suggestedChips.forEach(chip => {
             const btn = document.createElement('button');
-            btn.className = `dm-pill-chip ${chip.class}`;
+            btn.className = 'dm-pill-chip';
             btn.setAttribute('data-prompt', chip.prompt);
-            btn.innerHTML = `<i class="bi ${chip.icon}"></i> ${escapeHtml(chip.text)}`;
+            btn.innerHTML = `<i class="bi ${chip.icon} text-primary"></i> <span>${escapeHtml(chip.text)}</span>`;
             chipsContainer.appendChild(btn);
         });
 
         bindPromptChips();
     }
 
-    // Initialize prompt chips for current language
     setLanguage(currentLanguage);
 
     // =========================================================================
-    // Feature 5: Quick Actions Bar (Summarize, Key Findings, Explain, Questions)
+    // Quick Actions Bar (Bottom of chat)
     // =========================================================================
     function initQuickActions() {
         const quickBar = document.getElementById('dmQuickActionsBar');
@@ -642,7 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initQuickActions();
 
     // =========================================================================
-    // Feature 1: Speech Recognition (Voice Input through Microphone)
+    // Speech Recognition (Microphone Input)
     // =========================================================================
     let recognition = null;
     let isListening = false;
@@ -655,15 +586,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const voiceStatusText = document.getElementById('dmVoiceStatusText');
         const stopBtn = document.getElementById('dmVoiceStopBtn');
         const cancelBtn = document.getElementById('dmVoiceCancelBtn');
-        const retryBtn = document.getElementById('dmVoiceRetryBtn');
 
         if (!micBtn) return;
 
         if (!SpeechRecognition) {
-            micBtn.title = "Voice recognition is not supported in this browser (Use Chrome or Edge for Web Speech API).";
+            micBtn.title = "Voice recognition is not supported in this browser.";
             micBtn.classList.add('opacity-50');
             micBtn.onclick = () => {
-                showToast("Speech recognition is not supported in your browser. Please type your query or use Google Chrome / Microsoft Edge.", "warning");
+                showToast("Speech recognition is not supported in this browser. Please type your query.", "warning");
             };
             return;
         }
@@ -679,11 +609,8 @@ document.addEventListener('DOMContentLoaded', () => {
             rec.onstart = () => {
                 isListening = true;
                 micBtn.classList.add('is-listening');
-                micBtn.setAttribute('aria-pressed', 'true');
                 if (voiceBanner) voiceBanner.classList.remove('d-none');
-                if (voiceStatusText) {
-                    voiceStatusText.textContent = cfg.listeningText;
-                }
+                if (voiceStatusText) voiceStatusText.textContent = cfg.listeningText;
             };
 
             rec.onresult = (event) => {
@@ -701,7 +628,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     accumulatedTranscript = (accumulatedTranscript ? accumulatedTranscript + ' ' : '') + finalPiece.trim();
                 }
 
-                // Place editable text in the chat input in real-time
                 const combined = (accumulatedTranscript + (interim ? ' ' + interim : '')).trim();
                 if (queryInput && combined) {
                     queryInput.value = combined;
@@ -711,28 +637,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             rec.onerror = (event) => {
                 console.warn('SpeechRecognition error:', event.error);
-                const cfg = LANG_CONFIG[currentLanguage] || LANG_CONFIG.en;
-
-                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                    showToast('Microphone access was denied. Please allow microphone permission in your browser to use voice input.', 'danger');
+                if (event.error === 'not-allowed') {
+                    showToast('Microphone access denied. Please allow microphone permission.', 'danger');
                     cleanupListening(false);
                 } else if (event.error === 'no-speech') {
-                    showToast(cfg.noSpeechMsg, 'warning');
-                } else if (event.error === 'network') {
-                    showToast('Voice recognition network error. Please check your internet connection.', 'warning');
-                    cleanupListening(true);
-                } else if (event.error === 'language-not-supported') {
-                    showToast(`Speech recognition for ${cfg.label} (${cfg.locale}) is not supported by your browser engine. Please type your question.`, 'warning');
-                    cleanupListening(false);
+                    showToast(LANG_CONFIG[currentLanguage].noSpeechMsg, 'warning');
                 } else {
-                    showToast('Voice recognition: ' + event.error, 'warning');
+                    showToast('Voice error: ' + event.error, 'warning');
                 }
             };
 
             rec.onend = () => {
-                if (isListening) {
-                    cleanupListening(true);
-                }
+                if (isListening) cleanupListening(true);
             };
 
             return rec;
@@ -749,81 +665,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 recognition = createRecognitionInstance();
                 recognition.start();
             } catch (err) {
-                console.error('Failed to start speech recognition:', err);
-                showToast('Could not initiate voice recognition: ' + err.message, 'danger');
-                cleanupListening(false);
-            }
-        }
-
-        function cleanupListening(keepText) {
-            isListening = false;
-            if (micBtn) {
-                micBtn.classList.remove('is-listening');
-                micBtn.setAttribute('aria-pressed', 'false');
-            }
-            if (voiceBanner) {
-                voiceBanner.classList.add('d-none');
-            }
-            if (!keepText && queryInput) {
-                queryInput.value = '';
-                queryInput.dispatchEvent(new Event('input'));
+                console.warn('Start voice error:', err);
+                showToast('Could not start voice recognition.', 'warning');
             }
         }
 
         function stopListening(keepText = true) {
             if (recognition) {
-                try {
-                    recognition.stop();
-                } catch (e) {}
+                try { recognition.stop(); } catch (e) {}
             }
             cleanupListening(keepText);
-            if (queryInput && keepText) {
-                queryInput.focus();
-            }
         }
 
-        function cancelListening() {
-            if (recognition) {
-                try {
-                    recognition.abort();
-                } catch (e) {}
+        function cleanupListening(keepText = true) {
+            isListening = false;
+            micBtn.classList.remove('is-listening');
+            if (voiceBanner) voiceBanner.classList.add('d-none');
+            if (!keepText && queryInput) {
+                queryInput.value = '';
+                queryInput.dispatchEvent(new Event('input'));
             }
-            cleanupListening(false);
+            recognition = null;
         }
 
-        function retryListening() {
-            if (recognition) {
-                try {
-                    recognition.abort();
-                } catch (e) {}
-            }
-            cleanupListening(false);
-            setTimeout(() => {
-                startListening();
-            }, 150);
-        }
-
-        micBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            startListening();
-        });
-
-        if (stopBtn) stopBtn.addEventListener('click', () => stopListening(true));
-        if (cancelBtn) cancelBtn.addEventListener('click', () => cancelListening());
-        if (retryBtn) retryBtn.addEventListener('click', () => retryListening());
+        micBtn.onclick = () => startListening();
+        if (stopBtn) stopBtn.onclick = () => stopListening(true);
+        if (cancelBtn) cancelBtn.onclick = () => stopListening(false);
     }
     initSpeechRecognition();
 
     // =========================================================================
-    // 1. Asynchronous Drag-and-Drop & Document Upload
+    // Document Upload Handling
     // =========================================================================
     if (dropzone && fileInput) {
+        dropzone.addEventListener('click', (e) => {
+            if (e.target !== fileInput) {
+                fileInput.click();
+            }
+        });
+
         ['dragenter', 'dragover'].forEach(eventName => {
             dropzone.addEventListener(eventName, (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 dropzone.classList.add('dragover');
-            });
+            }, false);
         });
 
         ['dragleave', 'drop'].forEach(eventName => {
@@ -831,56 +717,58 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 e.stopPropagation();
                 dropzone.classList.remove('dragover');
-            });
+            }, false);
         });
 
         dropzone.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files && files.length > 0) {
                 handleFileUpload(files[0]);
             }
         });
 
         fileInput.addEventListener('change', () => {
-            if (fileInput.files.length > 0) {
+            if (fileInput.files && fileInput.files.length > 0) {
                 handleFileUpload(fileInput.files[0]);
             }
         });
     }
 
     async function handleFileUpload(file) {
-        const ext = file.name.split('.').pop().toLowerCase();
-        if (ext !== 'pdf' && ext !== 'txt') {
-            showToast('Unsupported format. Please upload a .pdf or .txt document.', 'danger');
+        if (!file) return;
+
+        // Validation on frontend
+        const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        if (!['.pdf', '.txt'].includes(ext)) {
+            showToast('Invalid file format. Please upload a PDF or TXT file.', 'danger');
             return;
         }
 
         if (file.size > 10 * 1024 * 1024) {
-            showToast('File size exceeds the 10 MB maximum limit.', 'danger');
+            showToast('File exceeds the 10 MB maximum limit.', 'danger');
             return;
         }
 
-        const formData = new FormData();
-        formData.append('document', file);
-
-        // Visible Processing State
-        uploadFeedback.classList.remove('d-none');
-        uploadFeedback.innerHTML = `
-            <div class="d-flex align-items-center gap-2 text-primary fw-medium">
-                <div class="dm-spinner-sm"></div>
-                <span>Indexing <strong>${escapeHtml(file.name)}</strong> into ChromaDB...</span>
-            </div>
-            <div class="dm-progress-bar-wrap">
-                <div class="dm-progress-indeterminate"></div>
-            </div>
-            <div class="text-muted small mt-1" style="font-size: 0.72rem;">
-                Extracting text chunks & generating dense vector embeddings
-            </div>
-        `;
+        if (uploadFeedback) {
+            uploadFeedback.classList.remove('d-none');
+            uploadFeedback.innerHTML = `
+                <div class="d-flex align-items-center gap-2">
+                    <span class="dm-spinner-sm text-primary"></span>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold text-truncate small">${escapeHtml(file.name)}</div>
+                        <div class="text-secondary" style="font-size: 0.72rem;">Extracting text & indexing into ChromaDB...</div>
+                    </div>
+                </div>
+            `;
+        }
 
         if (dropzoneIcon) {
             dropzoneIcon.innerHTML = `<span class="dm-spinner-sm"></span>`;
         }
+
+        const formData = new FormData();
+        formData.append('document', file);
 
         try {
             const response = await fetch('/api/upload/', {
@@ -895,8 +783,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.success) {
                 uploadFeedback.innerHTML = `
-                    <div class="text-success d-flex align-items-center gap-1 fw-semibold">
-                        <i class="bi bi-check-circle-fill"></i> ${escapeHtml(data.message)}
+                    <div class="text-success d-flex align-items-center gap-1 small">
+                        <i class="bi bi-check-circle-fill"></i> Successfully indexed into ${data.document.chunks} vector chunks.
                     </div>
                 `;
                 setTimeout(() => uploadFeedback.classList.add('d-none'), 3500);
@@ -907,7 +795,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast(`Indexed: ${data.document.name}`, 'success');
             } else {
                 uploadFeedback.innerHTML = `
-                    <div class="text-danger d-flex align-items-center gap-1">
+                    <div class="text-danger d-flex align-items-center gap-1 small">
                         <i class="bi bi-exclamation-triangle-fill"></i> ${escapeHtml(data.error || 'Upload failed')}
                     </div>
                 `;
@@ -915,7 +803,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (err) {
             uploadFeedback.innerHTML = `
-                <div class="text-danger">Network error during document upload.</div>
+                <div class="text-danger small">Network error during document upload.</div>
             `;
             showToast('Network error while processing file.', 'danger');
         } finally {
@@ -941,33 +829,23 @@ document.addEventListener('DOMContentLoaded', () => {
             vectorCountText.textContent = `${totalVectors} Vectors`;
         }
 
-        // Switch Empty State to Ready State if welcomeHero is still visible
+        // Switch empty state hero to ready state
         if (count > 0 && welcomeHero && welcomeHero.querySelector('#dmHeroEmptyDocs')) {
-            const firstDocName = document.querySelector('.dm-doc-title')?.textContent || 'your document';
             welcomeHero.innerHTML = `
                 <div id="dmHeroWithDocs">
                     <div class="dm-welcome-hero-icon">
-                        <i class="bi bi-stars"></i>
+                        <i class="bi bi-chat-quote"></i>
                     </div>
-                    <h1 class="dm-welcome-title">Ask Anything About Your Documents</h1>
+                    <h1 class="dm-welcome-title">Chat with your Documents</h1>
                     <div class="dm-welcome-subtitle">
-                        DocuMind AI searches dense semantic vector chunks from your uploaded documents to synthesize verified, citation-backed answers.
+                        Ask questions and get instant, grounded answers with exact source citations from your uploaded files.
                     </div>
-                    <div class="dm-chips-label text-muted small mb-2 fw-medium">Suggested queries to try:</div>
+                    <div class="dm-chips-label text-muted small mb-2 fw-medium">Suggested queries:</div>
                     <div class="d-flex flex-wrap justify-content-center gap-2" id="dmPromptChipsContainer">
-                        <button class="dm-pill-chip chip-violet" data-prompt="Summarize ${escapeHtml(firstDocName)} and highlight its core concepts, methodology, and key takeaways.">
-                            <i class="bi bi-file-earmark-text-fill"></i> Summarize this document
-                        </button>
-                        <button class="dm-pill-chip chip-cyan" data-prompt="What are the key findings, definitions, and concepts explained in the text?">
-                            <i class="bi bi-lightbulb-fill"></i> Key definitions & concepts
-                        </button>
-                        <button class="dm-pill-chip chip-emerald" data-prompt="What are the main conclusions and practical applications discussed?">
-                            <i class="bi bi-check-circle-fill"></i> Main conclusions & takeaways
-                        </button>
                     </div>
                 </div>
             `;
-            bindPromptChips();
+            updatePromptChips(currentLanguage);
         }
     }
 
@@ -989,20 +867,23 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="text-truncate me-2">
                 <div class="d-flex align-items-center gap-2 mb-1">
                     <span class="dm-file-badge ${badgeClass}">${badgeText}</span>
-                    <span class="fw-semibold text-truncate small text-dark dm-doc-title" title="${escapeHtml(doc.name)}">${escapeHtml(doc.name)}</span>
+                    <span class="fw-semibold text-truncate small dm-doc-title" title="${escapeHtml(doc.name)}">${escapeHtml(doc.name)}</span>
                 </div>
-                <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 0.74rem;">
-                    <span>${doc.chunks} chunks</span>
+                <div class="d-flex align-items-center gap-2 dm-doc-meta">
+                    <span><i class="bi bi-grid-3x3-gap me-1 text-primary"></i>${doc.chunks} chunks</span>
                     ${pageBadge}
                     <span>&bull; ${doc.size || ''}</span>
                 </div>
             </div>
             <div class="d-flex align-items-center gap-1 flex-shrink-0">
-                <button class="btn btn-doc-action btn-summarize-doc" data-name="${escapeHtml(doc.name)}" title="Ask DocuMind to summarize this document">
-                    <i class="bi bi-file-text"></i>
+                <button class="btn btn-doc-action btn-summarize-doc" data-name="${escapeHtml(doc.name)}" title="Summarize this document">
+                    <i class="bi bi-lightning-charge"></i>
+                </button>
+                <button class="btn btn-doc-action btn-replace-doc" data-id="${doc.id}" data-name="${escapeHtml(doc.name)}" title="Replace document">
+                    <i class="bi bi-arrow-repeat"></i>
                 </button>
                 <button class="btn btn-doc-action btn-delete btn-delete-doc" data-id="${doc.id}" title="Delete file and vector embeddings">
-                    <i class="bi bi-trash"></i>
+                    <i class="bi bi-trash3"></i>
                 </button>
             </div>
         `;
@@ -1045,28 +926,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
                                 if (remaining === 0) {
                                     docListContainer.innerHTML = `
-                                        <div class="text-center py-5 text-muted small" id="dmEmptyDocsMessage">
+                                        <div class="text-center py-5 dm-empty-docs-box" id="dmEmptyDocsMessage">
                                             <div class="dm-empty-circle mx-auto mb-2">
-                                                <i class="bi bi-folder2 text-secondary fs-4"></i>
+                                                <i class="bi bi-folder-plus text-primary fs-3"></i>
                                             </div>
-                                            <div class="fw-semibold text-dark">No documents indexed yet</div>
-                                            <div class="text-muted mt-1" style="font-size: 0.78rem;">Upload a PDF or TXT above to build your vector knowledge base.</div>
+                                            <div class="fw-bold dm-empty-title">No documents uploaded yet</div>
+                                            <div class="dm-empty-subtitle mt-1">Upload a PDF or TXT above to build your vector knowledge base.</div>
                                         </div>
                                     `;
 
-                                    // Switch back to pre-upload empty state in chat
                                     if (welcomeHero) {
                                         welcomeHero.innerHTML = `
                                             <div id="dmHeroEmptyDocs">
-                                                <div class="dm-welcome-icon dm-welcome-icon-empty">
-                                                    <i class="bi bi-file-earmark-arrow-up"></i>
+                                                <div class="dm-welcome-hero-icon">
+                                                    <i class="bi bi-cloud-arrow-up"></i>
                                                 </div>
                                                 <h1 class="dm-welcome-title">Welcome to DocuMind AI</h1>
                                                 <div class="dm-welcome-subtitle">
-                                                    Your AI-powered document intelligence assistant. Upload your lecture notes, research papers, or syllabus PDF to start extracting answers with verified source citations.
+                                                    Chat with your documents. Discover insights instantly. Upload a PDF or text file on the left to start.
                                                 </div>
                                                 <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold d-inline-flex align-items-center gap-2" id="dmHeroUploadBtn">
-                                                    <i class="bi bi-cloud-arrow-up-fill"></i> Upload Your First Document
+                                                    <i class="bi bi-cloud-arrow-up"></i> Upload Your First Document
                                                 </button>
                                             </div>
                                         `;
@@ -1081,14 +961,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         showToast('Document and vector embeddings deleted.', 'info');
                     } else {
                         deleteBtn.disabled = false;
-                        deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+                        deleteBtn.innerHTML = '<i class="bi bi-trash3"></i>';
                         showToast(data.error || 'Failed to delete document', 'danger');
                     }
                 } catch (err) {
                     deleteBtn.disabled = false;
-                    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+                    deleteBtn.innerHTML = '<i class="bi bi-trash3"></i>';
                     showToast('Server communication error.', 'danger');
                 }
+            };
+        }
+
+        // Replace action
+        const replaceBtn = container.querySelector('.btn-replace-doc');
+        if (replaceBtn) {
+            replaceBtn.onclick = () => {
+                const docName = replaceBtn.getAttribute('data-name');
+                showToast(`Select a replacement PDF or TXT for '${docName}'.`, 'info');
+                if (fileInput) fileInput.click();
             };
         }
 
@@ -1112,8 +1002,91 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.dm-document-card').forEach(attachActionListeners);
 
     // =========================================================================
+    // Panel C: Render Sources & Citations Panel
     // =========================================================================
-    // 2. Chat Query & Grounded Synthesis (with Smart Visual Learning Engine)
+    function renderSourcesPanel(sources, query) {
+        if (!sourcesContainer) return;
+
+        if (!sources || sources.length === 0) {
+            sourcesContainer.innerHTML = `
+                <div class="text-center py-5 dm-empty-sources-box" id="dmEmptySourcesMessage">
+                    <div class="dm-empty-circle mx-auto mb-2">
+                        <i class="bi bi-card-text text-secondary fs-3"></i>
+                    </div>
+                    <div class="fw-bold dm-empty-title">No sources retrieved yet</div>
+                    <div class="dm-empty-subtitle mt-1">Ask a question to view retrieved passages, relevance scores, and verifiable page citations.</div>
+                </div>
+            `;
+            if (sourcesCountBadge) sourcesCountBadge.textContent = '0 passages';
+            if (mobileSourceCount) mobileSourceCount.textContent = '0';
+            if (activeQueryBanner) activeQueryBanner.classList.add('d-none');
+            return;
+        }
+
+        if (sourcesCountBadge) {
+            sourcesCountBadge.textContent = `${sources.length} passage${sources.length === 1 ? '' : 's'}`;
+        }
+        if (mobileSourceCount) {
+            mobileSourceCount.textContent = sources.length;
+        }
+        if (activeQueryBanner && activeQueryText) {
+            activeQueryText.textContent = query || 'Recent question';
+            activeQueryBanner.classList.remove('d-none');
+        }
+
+        sourcesContainer.innerHTML = '';
+
+        sources.forEach((s, idx) => {
+            const bodyId = 'dm-src-body-' + idx + '-' + Date.now();
+            const pageText = s.page ? `Page ${s.page}` : '';
+            const matchScore = s.relevance_score || 85;
+            const chunkIndex = s.chunk_index || (idx + 1);
+            const isPdf = (s.filename || '').toLowerCase().endsWith('.pdf');
+
+            const card = document.createElement('div');
+            card.className = 'dm-source-panel-card is-expanded';
+            card.innerHTML = `
+                <div class="dm-source-card-header" data-bs-toggle="collapse" data-bs-target="#${bodyId}" aria-expanded="true">
+                    <div class="d-flex align-items-center gap-2 text-truncate me-2">
+                        <i class="bi ${isPdf ? 'bi-file-earmark-pdf text-danger' : 'bi-file-earmark-text text-primary'}"></i>
+                        <span class="dm-source-title text-truncate" title="${escapeHtml(s.filename)}">${escapeHtml(s.filename)}</span>
+                    </div>
+                    <div class="dm-source-meta-pills">
+                        ${pageText ? `<span class="dm-pill-page">${pageText}</span>` : ''}
+                        <span class="dm-pill-match">${matchScore}% Match</span>
+                        <i class="bi bi-chevron-down text-muted" style="font-size: 0.72rem;"></i>
+                    </div>
+                </div>
+                <div class="collapse show" id="${bodyId}">
+                    <div class="dm-source-card-body">
+                        <div class="dm-source-passage-text">${escapeHtml(s.text)}</div>
+                        <div class="dm-source-footer-actions">
+                            <span>Chunk #${chunkIndex}</span>
+                            <button type="button" class="dm-copy-passage-btn copy-passage-btn" data-text="${encodeURIComponent(s.text)}">
+                                <i class="bi bi-clipboard"></i> Copy passage
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            sourcesContainer.appendChild(card);
+        });
+
+        // Bind copy passage buttons
+        sourcesContainer.querySelectorAll('.copy-passage-btn').forEach(btn => {
+            btn.onclick = () => {
+                const passage = decodeURIComponent(btn.getAttribute('data-text'));
+                navigator.clipboard.writeText(passage);
+                btn.innerHTML = '<i class="bi bi-check2 text-success"></i> Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy passage';
+                }, 2000);
+            };
+        });
+    }
+
+    // =========================================================================
+    // Chat Query & Grounded Synthesis
     // =========================================================================
     async function submitQuery(queryText, forceVisual = false) {
         const query = (queryText || '').trim();
@@ -1133,7 +1106,10 @@ document.addEventListener('DOMContentLoaded', () => {
             queryInput.style.height = 'auto';
             queryInput.disabled = true;
         }
-        if (sendBtn) sendBtn.disabled = true;
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.classList.remove('is-error');
+        }
         if (sendBtnText) sendBtnText.textContent = 'Searching...';
         if (sendBtnIcon) sendBtnIcon.className = 'dm-spinner-sm';
 
@@ -1142,7 +1118,6 @@ document.addEventListener('DOMContentLoaded', () => {
         appendThinkingBubble(thinkingId);
         scrollChatToBottom();
 
-        // 60s timeout controller for generative AI synthesis
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000);
 
@@ -1175,12 +1150,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.success) {
                 appendAiAnswerCard(data.answer, data.has_context_match, data.sources, data.language || currentLanguage, data.visual, query);
 
+                // Update Sources Panel
+                renderSourcesPanel(data.sources || [], query);
+
                 if (vectorCountText && data.total_vectors !== undefined) {
                     vectorCountText.textContent = `${data.total_vectors} Vectors`;
                 }
             } else {
                 appendAiAnswerCard(data.error || 'The assistant could not complete your request.', false, data.sources || [], currentLanguage, null, query);
+                renderSourcesPanel([], query);
                 showToast(data.error || 'Query error', 'danger');
+                if (sendBtn) {
+                    sendBtn.classList.add('is-error');
+                    setTimeout(() => sendBtn?.classList.remove('is-error'), 2000);
+                }
             }
         } catch (err) {
             clearTimeout(timeoutId);
@@ -1191,11 +1174,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 appendAiAnswerCard('Network communication error. Please ensure the Django server is running.', false, [], currentLanguage, null, query);
                 showToast('Network error while querying assistant.', 'danger');
             }
+            if (sendBtn) {
+                sendBtn.classList.add('is-error');
+                setTimeout(() => sendBtn?.classList.remove('is-error'), 2000);
+            }
         } finally {
             if (thinkingId) {
                 removeElement(thinkingId);
             }
-            // Unconditionally clean up any orphaned thinking indicators
             document.querySelectorAll('.dm-thinking-card').forEach(el => {
                 const row = el.closest('.dm-message-row');
                 if (row) row.remove();
@@ -1206,7 +1192,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (sendBtn) sendBtn.disabled = false;
             if (sendBtnText) sendBtnText.textContent = 'Send';
-            if (sendBtnIcon) sendBtnIcon.className = 'bi bi-arrow-right-short fs-5';
+            if (sendBtnIcon) sendBtnIcon.className = 'bi bi-arrow-up-circle-fill';
             scrollChatToBottom();
         }
     }
@@ -1242,7 +1228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         row.id = id;
         row.innerHTML = `
             <div class="dm-message-avatar dm-avatar-ai">
-                <i class="bi bi-stars text-primary"></i>
+                <i class="bi bi-cpu-fill text-primary"></i>
             </div>
             <div class="dm-thinking-card">
                 <div class="dm-typing-dots">
@@ -1272,190 +1258,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const langCfg = LANG_CONFIG[answerLang] || LANG_CONFIG.en;
         const langBadge = `
-            <span class="badge bg-secondary-subtle text-body border border-secondary-subtle small fw-normal ms-1" title="Response Language: ${langCfg.label}">
-                <i class="bi bi-translate text-cyan me-1"></i>${langCfg.label}
+            <span class="badge bg-light text-secondary border small fw-normal ms-1">
+                <i class="bi bi-translate text-primary me-1"></i>${langCfg.label}
             </span>
         `;
-
-        // Render Citations with Feature 4: Evidence Lens
-        let citationsHtml = '';
-        if (sources && sources.length > 0) {
-            const accordionId = 'cit-acc-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-            let itemsHtml = '';
-            sources.forEach((s, idx) => {
-                const pageText = s.page ? `Page ${s.page}` : '';
-                const matchScore = s.relevance_score || 85;
-
-                itemsHtml += `
-                    <div class="dm-citation-item">
-                        <div class="dm-citation-header">
-                            <span class="dm-citation-title text-truncate" title="${escapeHtml(s.filename)}">
-                                <i class="bi bi-file-earmark-text text-violet me-1"></i> ${escapeHtml(s.filename)}
-                            </span>
-                            <div class="d-flex align-items-center gap-1">
-                                ${pageText ? `<span class="dm-pill-page">${pageText}</span>` : ''}
-                                <span class="dm-pill-match">${matchScore}% Match</span>
-                            </div>
-                        </div>
-                        <div class="dm-citation-passage">${escapeHtml(s.text)}</div>
-                        <div class="d-flex justify-content-between align-items-center mt-2 small text-muted" style="font-size: 0.72rem;">
-                            <span>Chunk #${s.chunk_index || (idx + 1)}</span>
-                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none copy-passage-btn text-muted" 
-                                    data-text="${encodeURIComponent(s.text)}">
-                                <i class="bi bi-clipboard"></i> Copy passage
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-
-            citationsHtml = `
-                <div class="dm-citations-accordion mt-3">
-                    <button class="dm-citations-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#${accordionId}" aria-expanded="true">
-                        <i class="bi bi-quote text-primary"></i>
-                        <span>View Supporting Evidence (${sources.length} passage${sources.length === 1 ? '' : 's'})</span>
-                        <i class="bi bi-chevron-down ms-1" style="font-size: 0.75rem;"></i>
-                    </button>
-                    <div class="collapse show mt-2" id="${accordionId}">
-                        ${itemsHtml}
-                    </div>
-                </div>
-            `;
-        }
 
         const formattedHtml = formatMarkdown(text);
         const visualId = 'dm-vis-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
 
-        // Smart Visual Component HTML
         let visualHtml = '';
         const hasVisual = visual && typeof visual === 'object';
         const hasVisualData = hasVisual && visual.has_data !== false;
 
         if (hasVisual && !hasVisualData) {
-            // Document lacks reliable data for this chart
             visualHtml = `
-                <div class="dm-insufficient-data-alert">
-                    <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 text-warning"></i>
-                    <div>
-                        <strong>Insufficient Document Data for Visual Representation:</strong>
-                        <div class="mt-1">${escapeHtml(visual.insufficient_data_reason || 'The uploaded documents do not contain enough numerical or categorical data to generate an accurate chart without inventing numbers.')}</div>
-                    </div>
+                <div class="alert alert-info small py-2 px-3 my-2">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <span>${escapeHtml(visual.insufficient_data_reason || 'Insufficient numerical data for chart generation.')}</span>
                 </div>
             `;
         } else if (hasVisual && hasVisualData) {
-            const subType = visual.sub_type || (visual.type === 'chartjs' ? 'chart' : 'flowchart');
-            let badgeClass = 'dm-visual-badge-flowchart';
-            let badgeText = 'Diagram';
-            let visualTabLabel = 'View Diagram';
-
-            if (subType === 'flowchart') {
-                badgeClass = 'dm-visual-badge-flowchart';
-                badgeText = 'Flowchart';
-                visualTabLabel = 'View Flowchart';
-            } else if (subType === 'block_diagram') {
-                badgeClass = 'dm-visual-badge-block';
-                badgeText = 'Block Diagram';
-                visualTabLabel = 'View Architecture';
-            } else if (subType === 'timeline') {
-                badgeClass = 'dm-visual-badge-timeline';
-                badgeText = 'Timeline';
-                visualTabLabel = 'View Timeline';
-            } else if (['bar', 'line', 'pie', 'doughnut', 'chart'].includes(subType) || visual.type === 'chartjs') {
-                badgeClass = 'dm-visual-badge-chart';
-                badgeText = subType.toUpperCase() + ' CHART';
-                visualTabLabel = 'View Chart';
-            } else if (subType === 'comparison') {
-                badgeClass = 'dm-visual-badge-block';
-                badgeText = 'Comparison';
-                visualTabLabel = 'View Comparison';
-            } else if (subType === 'concept_map') {
-                badgeClass = 'dm-visual-badge-flowchart';
-                badgeText = 'Concept Map';
-                visualTabLabel = 'View Concept Map';
-            }
-
-            const title = escapeHtml(visual.title || 'Smart Visual Explanation');
             const isMermaid = visual.type === 'mermaid';
-
             visualHtml = `
-                <div class="dm-visual-container" id="${visualId}">
-                    <div class="dm-visual-header">
-                        <div class="dm-visual-title-wrap">
-                            <span class="dm-visual-badge ${badgeClass}">${badgeText}</span>
-                            <span>${title}</span>
-                        </div>
-                        <div class="dm-visual-actions">
-                            <div class="dm-vtab-group" role="tablist">
-                                <button type="button" class="dm-vtab-btn active" data-tab="visual" data-target="${visualId}">
-                                    <i class="bi bi-image"></i> ${visualTabLabel}
-                                </button>
-                                <button type="button" class="dm-vtab-btn" data-tab="explanation" data-target="${visualId}">
-                                    <i class="bi bi-file-text"></i> Show Explanation
-                                </button>
-                                ${sources && sources.length > 0 ? `
-                                <button type="button" class="dm-vtab-btn" data-tab="evidence" data-target="${visualId}">
-                                    <i class="bi bi-shield-check"></i> Supporting Evidence
-                                </button>
-                                ` : ''}
-                            </div>
-                            ${isMermaid ? `
-                            <button type="button" class="dm-visual-zoom-btn ms-1" data-zoom-target="${visualId}" title="Expand & Zoom Diagram">
-                                <i class="bi bi-arrows-fullscreen"></i>
-                            </button>
-                            ` : ''}
-                        </div>
-                    </div>
-
-                    <!-- Tab 1: Visual Viewport -->
-                    <div class="dm-visual-viewport dm-pane-visual" id="pane-visual-${visualId}">
+                <div class="border rounded-3 p-3 my-2 bg-light" id="${visualId}">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-primary-subtle text-primary fw-semibold">${escapeHtml(visual.title || 'Visual Inspection')}</span>
                         ${isMermaid ? `
-                            <div class="dm-diagram-svg-wrap" id="svg-wrap-${visualId}">
+                        <button type="button" class="btn btn-sm btn-outline-secondary dm-visual-zoom-btn" data-zoom-target="${visualId}" title="Expand diagram">
+                            <i class="bi bi-arrows-fullscreen"></i>
+                        </button>
+                        ` : ''}
+                    </div>
+                    <div id="pane-visual-${visualId}">
+                        ${isMermaid ? `
+                            <div class="dm-diagram-svg-wrap text-center" id="svg-wrap-${visualId}">
                                 <div class="dm-spinner-sm"></div>
                             </div>
                         ` : `
-                            <div class="dm-chart-canvas-wrap">
+                            <div style="height: 240px; position: relative;">
                                 <canvas id="canvas-${visualId}"></canvas>
                             </div>
                         `}
                     </div>
-
-                    <!-- Tab 2: Detailed Text Explanation -->
-                    <div class="dm-visual-explanation-body dm-pane-explanation d-none" id="pane-exp-${visualId}">
-                        <div class="small text-muted mb-2 fw-semibold text-uppercase" style="letter-spacing: 0.04em;">
-                            <i class="bi bi-info-circle me-1 text-primary"></i> Detailed Text Explanation
-                        </div>
-                        <div>${formattedHtml}</div>
-                    </div>
-
-                    <!-- Tab 3: Supporting Evidence -->
-                    ${sources && sources.length > 0 ? `
-                    <div class="p-3 border-top dm-pane-evidence d-none" id="pane-evi-${visualId}" style="background-color: var(--dm-bg-surface);">
-                        <div class="small text-muted mb-2 fw-semibold text-uppercase" style="letter-spacing: 0.04em;">
-                            <i class="bi bi-shield-check me-1 text-success"></i> Document Source Grounding
-                        </div>
-                        ${citationsHtml}
-                    </div>
-                    ` : ''}
                 </div>
             `;
         }
 
-        // Option to request a visual explanation for text-only answers
-        let visualRequestButtonHtml = '';
-        if (!hasVisual && hasMatch && originalQuery) {
-            visualRequestButtonHtml = `
-                <div class="mt-2">
-                    <button type="button" class="dm-btn-visual-request" data-query="${encodeURIComponent(originalQuery)}">
-                        <i class="bi bi-diagram-3-fill text-primary"></i>
-                        <span>Generate a visual explanation</span>
-                    </button>
+        // Citation link summary
+        let citationSummaryHtml = '';
+        if (sources && sources.length > 0) {
+            citationSummaryHtml = `
+                <div class="dm-answer-citation-summary">
+                    <span><i class="bi bi-quote text-primary"></i> Verified with ${sources.length} supporting passage${sources.length === 1 ? '' : 's'}</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 dm-view-sources-btn">View in Sources panel &rarr;</button>
                 </div>
             `;
         }
 
         row.innerHTML = `
             <div class="dm-message-avatar dm-avatar-ai">
-                <i class="bi bi-robot text-primary"></i>
+                <i class="bi bi-file-earmark-text-fill text-primary"></i>
             </div>
             <div class="dm-ai-card ${!hasMatch ? 'context-restricted' : ''}">
                 <div class="dm-answer-header">
@@ -1464,9 +1326,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${langBadge}
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <!-- Feature 3: Text-to-Speech Speaker Button -->
-                        <button type="button" class="btn btn-sm dm-tts-btn" title="Listen to answer aloud (${langCfg.label})">
-                            <i class="bi bi-volume-up-fill dm-tts-icon"></i>
+                        <button type="button" class="btn btn-sm dm-tts-btn" title="Listen aloud">
+                            <i class="bi bi-volume-up dm-tts-icon"></i>
                             <span class="dm-tts-label d-none d-sm-inline ms-1">Listen</span>
                         </button>
                         <button type="button" class="btn btn-link btn-sm text-secondary p-0 copy-answer-btn" title="Copy answer">
@@ -1475,25 +1336,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- Visual Engine Section (Diagram / Chart) -->
                 ${visualHtml}
-
-                <!-- Answer Body (Shown directly if no visual container or as standard text) -->
-                ${!hasVisual || !hasVisualData ? `<div class="dm-answer-body">${formattedHtml}</div>` : ''}
-
-                <!-- Visual Request Trigger Button for Text Answers -->
-                ${visualRequestButtonHtml}
-
-                <!-- Standalone Citations Accordion (if no visual container with tab) -->
-                ${!hasVisual || !hasVisualData ? citationsHtml : ''}
+                <div class="dm-answer-body">${formattedHtml}</div>
+                ${citationSummaryHtml}
             </div>
         `;
 
         chatStream.appendChild(row);
 
-        // =====================================================================
-        // Post-render binding: Mermaid Diagram or Chart.js execution
-        // =====================================================================
+        // Visual post-rendering
         if (hasVisual && hasVisualData) {
             if (visual.type === 'mermaid' && visual.code) {
                 const svgWrap = document.getElementById('svg-wrap-' + visualId);
@@ -1501,7 +1352,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderMermaidDiagram(svgWrap, visual.code, visualId);
                 }
 
-                // Bind zoom button for diagram inspection modal
                 const zoomBtn = row.querySelector(`[data-zoom-target="${visualId}"]`);
                 if (zoomBtn) {
                     zoomBtn.onclick = () => {
@@ -1517,38 +1367,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderChartJs(canvasEl, visual.chart_config);
                 }
             }
-
-            // Bind Visual Toolbar Tabs (Visual, Explanation, Evidence)
-            const tabBtns = row.querySelectorAll(`.dm-vtab-btn[data-target="${visualId}"]`);
-            const paneVisual = document.getElementById('pane-visual-' + visualId);
-            const paneExp = document.getElementById('pane-exp-' + visualId);
-            const paneEvi = document.getElementById('pane-evi-' + visualId);
-
-            tabBtns.forEach(btn => {
-                btn.onclick = () => {
-                    tabBtns.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-
-                    const tabType = btn.getAttribute('data-tab');
-                    if (paneVisual) paneVisual.classList.toggle('d-none', tabType !== 'visual');
-                    if (paneExp) paneExp.classList.toggle('d-none', tabType !== 'explanation');
-                    if (paneEvi) paneEvi.classList.toggle('d-none', tabType !== 'evidence');
-                };
-            });
         }
 
-        // Bind "Generate a visual explanation" button on text-only answers
-        const visualReqBtn = row.querySelector('.dm-btn-visual-request');
-        if (visualReqBtn) {
-            visualReqBtn.onclick = () => {
-                const orig = decodeURIComponent(visualReqBtn.getAttribute('data-query'));
-                visualReqBtn.disabled = true;
-                visualReqBtn.innerHTML = '<span class="dm-spinner-sm me-1"></span> Generating visual...';
-                submitQuery(orig, true);
+        // Bind View in Sources panel button
+        const viewSourcesBtn = row.querySelector('.dm-view-sources-btn');
+        if (viewSourcesBtn) {
+            viewSourcesBtn.onclick = () => {
+                if (window.innerWidth < 992 && tabBtnSources) {
+                    tabBtnSources.click();
+                } else if (colSources) {
+                    colSources.scrollIntoView({ behavior: 'smooth' });
+                    colSources.querySelectorAll('.dm-source-panel-card').forEach(card => {
+                        card.style.borderColor = 'var(--dm-primary-blue)';
+                        setTimeout(() => card.style.borderColor = '', 1500);
+                    });
+                }
             };
         }
 
-        // Feature 3: TTS Speaker listener
+        // TTS Listener
         const ttsBtn = row.querySelector('.dm-tts-btn');
         if (ttsBtn) {
             ttsBtn.onclick = () => {
@@ -1566,16 +1403,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-        // Copy passage button
-        row.querySelectorAll('.copy-passage-btn').forEach(btn => {
-            btn.onclick = () => {
-                const passage = decodeURIComponent(btn.getAttribute('data-text'));
-                navigator.clipboard.writeText(passage);
-                btn.innerHTML = '<i class="bi bi-check2 text-success"></i> Copied!';
-                setTimeout(() => btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy passage', 2000);
-            };
-        });
-
         scrollChatToBottom();
     }
 
@@ -1585,7 +1412,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================================
-    // 3. API Key In-App Configuration Modal
+    // API Key Configuration Modal
     // =========================================================================
     const saveKeyForm = document.getElementById('saveKeyForm');
     const modalApiKeyInput = document.getElementById('modalApiKeyInput');
@@ -1602,7 +1429,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const key = modalApiKeyInput.value.trim();
             if (!key) return;
 
-            // Save locally in browser storage immediately
             localStorage.setItem('documind-api-key', key);
 
             saveKeyBtn.disabled = true;
@@ -1635,9 +1461,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     modalKeyAlert.classList.remove('d-none');
                 }
             } catch (err) {
-                // If network or server error, key is still saved locally in browser
                 modalKeyAlert.className = 'alert alert-success small py-2 px-3 mb-3';
-                modalKeyAlert.textContent = 'API Key saved locally in your browser and ready to use!';
+                modalKeyAlert.textContent = 'API Key saved locally in browser and active for this session!';
                 modalKeyAlert.classList.remove('d-none');
                 showToast('API Key saved locally in browser!', 'success');
                 setTimeout(() => {
