@@ -502,72 +502,102 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================================================
-   3-Panel Studio Workspace Layout (Responsive Grid with Expansive Center)
+   Studio 3-Panel Horizontal Flexbox Layout
+   Ensures Source Intelligence is ALWAYS locked on the right side, NEVER below.
+   AI Conversation Canvas takes all expanding center width.
    ========================================================================== */
 .dm-studio-workspace {
-    padding: 1rem 0 2rem;
-    max-width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1rem 1.25rem 2rem !important;
+    box-sizing: border-box !important;
 }
 
 .dm-dashboard-grid {
-    width: 100%;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    gap: 1.25rem !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
 }
 
-/* Mobile & Small Screens (< 860px): Segmented 1-panel view with tabs */
-@media (max-width: 859.98px) {
-    .dm-column-panel {
-        display: none !important;
-        width: 100% !important;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
-    }
-    .dm-column-panel.active-mobile-panel {
-        display: block !important;
-    }
-    .dm-mobile-tabs-container {
-        display: block !important;
-    }
+/* Panel A: Left Document Repository Sidebar (Compact) */
+.dm-panel-sidebar-left {
+    flex: 0 0 260px !important;
+    width: 260px !important;
+    max-width: 280px !important;
+    min-width: 240px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
 }
 
-/* Tablets, Laptops & Desktops (>= 860px): Strict 3-Column Side-by-Side Layout */
-@media (min-width: 860px) {
-    .dm-mobile-tabs-container {
-        display: none !important;
+/* Panel B: Center AI Conversation Canvas (EXPANSIVE) */
+.dm-panel-center-canvas {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+}
+
+/* Panel C: Right Source Intelligence (LOCKED ON THE RIGHT SIDE) */
+.dm-panel-sidebar-right {
+    flex: 0 0 320px !important;
+    width: 320px !important;
+    max-width: 360px !important;
+    min-width: 280px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+}
+
+/* Wide screen enhancements */
+@media (min-width: 1400px) {
+    .dm-panel-sidebar-left {
+        flex: 0 0 280px !important;
+        width: 280px !important;
+    }
+    .dm-panel-sidebar-right {
+        flex: 0 0 350px !important;
+        width: 350px !important;
     }
     .dm-dashboard-grid {
-        display: grid !important;
-        /* Left: 260px, Center (AI Conversation Canvas): 1fr expansive, Right: 300px */
-        grid-template-columns: 260px minmax(0, 1fr) 300px !important;
-        gap: 1rem !important;
-        align-items: stretch;
+        gap: 1.5rem !important;
     }
-    .dm-column-panel {
-        display: flex !important;
+}
+
+/* Mobile & Extra Small Screens (< 768px): Segmented Tab View */
+@media (max-width: 767.98px) {
+    .dm-dashboard-grid {
         flex-direction: column !important;
+        flex-wrap: wrap !important;
+        gap: 1rem !important;
+    }
+    .dm-panel-sidebar-left,
+    .dm-panel-center-canvas,
+    .dm-panel-sidebar-right {
+        display: none !important;
         width: 100% !important;
         max-width: 100% !important;
-        padding: 0 !important;
-        flex: none !important;
+        flex: 1 1 100% !important;
+    }
+    .dm-column-panel.active-mobile-panel {
+        display: flex !important;
+    }
+    .dm-mobile-tabs-container {
+        display: block !important;
     }
 }
 
-/* Standard Laptops & Desktops (>= 1200px): Wider Center Canvas */
-@media (min-width: 1200px) {
-    .dm-dashboard-grid {
-        /* Left: 275px, Center: Massive 1fr, Right: 330px */
-        grid-template-columns: 275px minmax(0, 1fr) 330px !important;
-        gap: 1.25rem !important;
-    }
-}
-
-/* Ultra-Wide Displays (>= 1500px): Proportional Studio Layout */
-@media (min-width: 1500px) {
-    .dm-dashboard-grid {
-        /* Left: 290px, Center: Huge 1fr, Right: 360px */
-        grid-template-columns: 290px minmax(0, 1fr) 360px !important;
-        gap: 1.5rem !important;
+@media (min-width: 768px) {
+    .dm-mobile-tabs-container {
+        display: none !important;
     }
 }
 

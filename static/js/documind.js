@@ -510,7 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!tabBtnDocs || !tabBtnChat || !tabBtnSources) return;
 
         function setMobileTab(activeTab) {
-            if (window.innerWidth >= 860) {
+            if (window.innerWidth >= 768) {
                 colDocs?.classList.remove('active-mobile-panel');
                 colChat?.classList.remove('active-mobile-panel');
                 colSources?.classList.remove('active-mobile-panel');
@@ -530,13 +530,13 @@ document.addEventListener('DOMContentLoaded', () => {
         tabBtnChat.addEventListener('click', () => setMobileTab('chat'));
         tabBtnSources.addEventListener('click', () => setMobileTab('sources'));
 
-        if (window.innerWidth < 860) {
+        if (window.innerWidth < 768) {
             const docCount = document.querySelectorAll('.dm-document-card').length;
             setMobileTab(docCount > 0 ? 'chat' : 'docs');
         }
 
         window.addEventListener('resize', () => {
-            if (window.innerWidth >= 860) {
+            if (window.innerWidth >= 768) {
                 colDocs?.classList.remove('active-mobile-panel');
                 colChat?.classList.remove('active-mobile-panel');
                 colSources?.classList.remove('active-mobile-panel');
@@ -556,7 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (queryInput && promptText) {
                     queryInput.value = promptText;
                     queryInput.dispatchEvent(new Event('input'));
-                    if (window.innerWidth < 860 && tabBtnChat) {
+                    if (window.innerWidth < 768 && tabBtnChat) {
                         tabBtnChat.click();
                     }
                     const isVisual = (action === 'mind_map');
@@ -604,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (promptText && queryInput) {
                     queryInput.value = promptText;
                     queryInput.dispatchEvent(new Event('input'));
-                    if (window.innerWidth < 860 && tabBtnChat) {
+                    if (window.innerWidth < 768 && tabBtnChat) {
                         tabBtnChat.click();
                     }
                     const isVisual = (action === 'mind_map');
@@ -1037,7 +1037,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (queryInput) {
                     queryInput.value = `Provide a structured summary of ${docName}, highlighting core concepts, main findings, and key takeaways.`;
                     queryInput.dispatchEvent(new Event('input'));
-                    if (window.innerWidth < 860 && tabBtnChat) {
+                    if (window.innerWidth < 768 && tabBtnChat) {
                         tabBtnChat.click();
                     }
                     chatForm.dispatchEvent(new Event('submit'));
@@ -1420,7 +1420,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const viewSourcesBtn = row.querySelector('.dm-view-sources-btn');
         if (viewSourcesBtn) {
             viewSourcesBtn.onclick = () => {
-                if (window.innerWidth < 860 && tabBtnSources) {
+                if (window.innerWidth < 768 && tabBtnSources) {
                     tabBtnSources.click();
                 } else if (colSources) {
                     colSources.scrollIntoView({ behavior: 'smooth' });
@@ -1571,7 +1571,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 chatCanvasView?.classList.add('d-none');
                 examCanvasView?.classList.remove('d-none');
 
-                if (window.innerWidth < 860 && tabBtnChat) {
+                if (window.innerWidth < 768 && tabBtnChat) {
                     tabBtnChat.click();
                 }
             } else {

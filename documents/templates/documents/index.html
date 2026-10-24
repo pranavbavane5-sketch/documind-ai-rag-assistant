@@ -16,7 +16,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     
     <!-- DocuMind AI Creative Futuristic Studio Stylesheet -->
-    <link href="{% static 'css/documind.css' %}" rel="stylesheet">
+    <link href="{% static 'css/documind.css' %}?v={% now 'U' %}" rel="stylesheet">
 </head>
 
 <body class="documind-app">
@@ -254,12 +254,12 @@
 
     <!-- Main Workspace Dashboard: 3-Panel Side-by-Side Studio Layout -->
     <main class="container-fluid px-2 px-md-3 px-xl-4 dm-studio-workspace" id="dmStudioWorkspace">
-        <div class="row g-3 dm-dashboard-grid">
+        <div class="dm-dashboard-grid" id="dmDashboardGrid">
             
             <!-- ========================================================= -->
             <!-- 1. PANEL A: Document Studio (Left Panel - Compact)         -->
             <!-- ========================================================= -->
-            <div class="col-12 col-md-3 col-xl-2 dm-column-panel active-mobile-panel" id="colDocs">
+            <div class="dm-column-panel dm-panel-sidebar-left active-mobile-panel" id="colDocs">
                 <div class="dm-panel-card">
                     
                     <!-- Panel Header -->
@@ -370,7 +370,7 @@
             <!-- ========================================================= -->
             <!-- 2. PANEL B: AI Conversation Workspace (Center Panel - WIDE)-->
             <!-- ========================================================= -->
-            <div class="col-12 col-md-6 col-xl-7 dm-column-panel" id="colChat">
+            <div class="dm-column-panel dm-panel-center-canvas" id="colChat">
                 <div class="dm-panel-card">
                     
                     <!-- Panel Header -->
@@ -695,7 +695,7 @@
             <!-- ========================================================= -->
             <!-- 3. PANEL C: Source Intelligence & Evidence (Right Sidebar) -->
             <!-- ========================================================= -->
-            <div class="col-12 col-md-3 col-xl-3 dm-column-panel" id="colSources">
+            <div class="dm-column-panel dm-panel-sidebar-right" id="colSources">
                 <div class="dm-panel-card">
                     
                     <!-- Panel Header -->
@@ -877,6 +877,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     
     <!-- DocuMind AI Client Engine -->
-    <script src="{% static 'js/documind.js' %}"></script>
+    <script src="{% static 'js/documind.js' %}?v={% now 'U' %}"></script>
 </body>
 </html>
