@@ -48,15 +48,15 @@
             <!-- Status Indicators & Actions -->
             <div class="d-flex align-items-center gap-2">
                 
-                <!-- Live System Ready Pill -->
-                <div class="dm-status-pill d-none d-sm-inline-flex" title="ChromaDB and Gemini API active">
+                <!-- Live System Ready Pill (Hidden from top navbar per request) -->
+                <div class="dm-status-pill d-none" title="ChromaDB and Gemini API active" style="display: none !important;">
                     <span class="dm-status-dot"></span>
                     <span>SYSTEM ONLINE</span>
                 </div>
 
-                <!-- Mode Switcher (Chat Studio / Exam Prep Mode) -->
+                <!-- Mode Switcher (Exam Prep Mode Toggle) -->
                 <div class="dm-mode-switcher-nav d-inline-flex align-items-center" role="tablist">
-                    <button type="button" class="btn btn-sm dm-nav-mode-btn active" id="dmNavChatModeBtn" title="Switch to AI Chat Studio">
+                    <button type="button" class="btn btn-sm dm-nav-mode-btn active d-none" id="dmNavChatModeBtn" title="Switch to AI Chat Studio">
                         <i class="bi bi-chat-quote-fill me-1 text-primary"></i> <span class="d-none d-md-inline">Chat Studio</span>
                     </button>
                     <button type="button" class="btn btn-sm dm-nav-mode-btn" id="dmNavExamModeBtn" title="Switch to University Exam Preparation Mode">
@@ -99,8 +99,8 @@
                     <i class="bi bi-sun" id="dmThemeIcon"></i>
                 </button>
 
-                <!-- Hidden/Subtle API Key Trigger -->
-                <button type="button" class="btn btn-sm dm-btn-nav" data-bs-toggle="modal" data-bs-target="#apiKeyModal" title="Gemini API Key Configuration">
+                <!-- Hidden API Key Trigger (Hidden from top navbar per request) -->
+                <button type="button" class="btn btn-sm dm-btn-nav d-none" data-bs-toggle="modal" data-bs-target="#apiKeyModal" title="Gemini API Key Configuration" style="display: none !important;">
                     <i class="bi bi-key text-secondary"></i>
                     <span class="d-none d-lg-inline">Key</span>
                 </button>

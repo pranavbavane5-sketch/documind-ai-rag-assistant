@@ -1585,7 +1585,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         navChatBtn?.addEventListener('click', () => switchWorkspaceMode('chat'));
-        navExamBtn?.addEventListener('click', () => switchWorkspaceMode('exam'));
+        navExamBtn?.addEventListener('click', () => {
+            const isExamActive = navExamBtn.classList.contains('active');
+            switchWorkspaceMode(isExamActive ? 'chat' : 'exam');
+        });
         headerSwitchToChatBtn?.addEventListener('click', () => switchWorkspaceMode('chat'));
         headerSwitchToExamBtn?.addEventListener('click', () => switchWorkspaceMode('exam'));
         heroTriggerExamPrep?.addEventListener('click', () => switchWorkspaceMode('exam'));
