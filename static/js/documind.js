@@ -872,6 +872,10 @@ document.addEventListener('DOMContentLoaded', () => {
             vectorCountText.textContent = `${totalVectors} Vectors`;
         }
 
+        if (window.dmSyncExamDocSelector) {
+            window.dmSyncExamDocSelector();
+        }
+
         // Switch empty state hero to ready state
         if (count > 0 && welcomeHero && welcomeHero.querySelector('#dmHeroEmptyDocs')) {
             welcomeHero.innerHTML = `
@@ -1519,6 +1523,583 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // =========================================================================
+    // Exam Preparation Mode Engine
+    // =========================================================================
+    function initExamPrepMode() {
+        let activeMarks = 'all';
+        let cachedExamQuestions = [];
+        let isGeneratingQuestions = false;
+
+        const navChatBtn = document.getElementById('dmNavChatModeBtn');
+        const navExamBtn = document.getElementById('dmNavExamModeBtn');
+        const headerChatView = document.getElementById('dmHeaderChatView');
+        const headerExamView = document.getElementById('dmHeaderExamView');
+        const chatCanvasView = document.getElementById('dmChatCanvasView');
+        const examCanvasView = document.getElementById('dmExamCanvasView');
+
+        const heroTriggerExamPrep = document.getElementById('dmHeroTriggerExamPrep');
+        const headerSwitchToExamBtn = document.getElementById('dmHeaderSwitchToExamBtn');
+        const headerSwitchToChatBtn = document.getElementById('dmHeaderSwitchToChatBtn');
+
+        const examDocSelector = document.getElementById('dmExamDocSelector');
+        const examGenerateBtn = document.getElementById('dmExamGenerateBtn');
+        const examGenerateBtnText = document.getElementById('dmExamGenerateBtnText');
+        const examEmptyStartBtn = document.getElementById('dmExamEmptyStartBtn');
+        const examEmptyUploadBtn = document.getElementById('dmExamEmptyUploadBtn');
+        const examEmptyState = document.getElementById('dmExamEmptyState');
+        const examQuestionsList = document.getElementById('dmExamQuestionsList');
+        const examSubToolbar = document.getElementById('dmExamSubToolbar');
+        const examQuestionCountBadge = document.getElementById('dmExamQuestionCountBadge');
+        const examSourceInfo = document.getElementById('dmExamSourceInfo');
+        const examGenerateMoreBtn = document.getElementById('dmExamGenerateMoreBtn');
+        const examCopyAllBtn = document.getElementById('dmExamCopyAllBtn');
+        const examAlertBanner = document.getElementById('dmExamAlertBanner');
+
+        const customExamQuestionInput = document.getElementById('dmCustomExamQuestionInput');
+        const customQuestionSubmitBtn = document.getElementById('dmCustomQuestionSubmitBtn');
+        const customQuestionBtnText = document.getElementById('dmCustomQuestionBtnText');
+
+        // Mode Switching
+        function switchWorkspaceMode(mode) {
+            if (mode === 'exam') {
+                navChatBtn?.classList.remove('active');
+                navExamBtn?.classList.add('active');
+                headerChatView?.classList.add('d-none');
+                headerExamView?.classList.remove('d-none');
+                chatCanvasView?.classList.add('d-none');
+                examCanvasView?.classList.remove('d-none');
+
+                if (window.innerWidth < 992 && tabBtnChat) {
+                    tabBtnChat.click();
+                }
+            } else {
+                navExamBtn?.classList.remove('active');
+                navChatBtn?.classList.add('active');
+                headerExamView?.classList.add('d-none');
+                headerChatView?.classList.remove('d-none');
+                examCanvasView?.classList.add('d-none');
+                chatCanvasView?.classList.remove('d-none');
+            }
+        }
+
+        navChatBtn?.addEventListener('click', () => switchWorkspaceMode('chat'));
+        navExamBtn?.addEventListener('click', () => switchWorkspaceMode('exam'));
+        headerSwitchToChatBtn?.addEventListener('click', () => switchWorkspaceMode('chat'));
+        headerSwitchToExamBtn?.addEventListener('click', () => switchWorkspaceMode('exam'));
+        heroTriggerExamPrep?.addEventListener('click', () => switchWorkspaceMode('exam'));
+
+        // Marks Category Button Group
+        const marksBtns = document.querySelectorAll('.dm-marks-btn');
+        marksBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                marksBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeMarks = btn.getAttribute('data-marks') || 'all';
+                filterQuestionsByMarks();
+            });
+        });
+
+        function filterQuestionsByMarks() {
+            if (!examQuestionsList) return;
+            const cards = examQuestionsList.querySelectorAll('.dm-exam-card');
+            let visibleCount = 0;
+            cards.forEach(card => {
+                const cardMarks = card.getAttribute('data-marks');
+                if (activeMarks === 'all' || cardMarks === activeMarks) {
+                    card.classList.remove('d-none');
+                    visibleCount++;
+                } else {
+                    card.classList.add('d-none');
+                }
+            });
+
+            if (examQuestionCountBadge) {
+                examQuestionCountBadge.textContent = `${visibleCount} Question${visibleCount === 1 ? '' : 's'}`;
+            }
+        }
+
+        // Custom Question Marks Selector
+        const customMarksBtns = document.querySelectorAll('.dm-custom-marks-btn');
+        let selectedCustomMarks = 5;
+        customMarksBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                customMarksBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedCustomMarks = parseInt(btn.getAttribute('data-marks'), 10) || 5;
+            });
+        });
+
+        // Sync Document Selector dropdown with uploaded documents
+        function syncExamDocSelector() {
+            if (!examDocSelector) return;
+            const currentSelected = examDocSelector.value;
+            const docCards = document.querySelectorAll('.dm-document-card');
+
+            let optionsHtml = '<option value="">All Uploaded Documents (Global Syllabus)</option>';
+            docCards.forEach(card => {
+                const docId = card.id ? card.id.replace('dm-doc-', '') : '';
+                const docTitle = card.querySelector('.dm-doc-title')?.getAttribute('title') || 'Document';
+                if (docId) {
+                    optionsHtml += `<option value="${escapeHtml(docId)}">${escapeHtml(docTitle)}</option>`;
+                }
+            });
+            examDocSelector.innerHTML = optionsHtml;
+            if (currentSelected && examDocSelector.querySelector(`option[value="${currentSelected}"]`)) {
+                examDocSelector.value = currentSelected;
+            }
+        }
+
+        // Empty state upload button
+        if (examEmptyUploadBtn && fileInput) {
+            examEmptyUploadBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+        }
+
+        // Generate Questions Trigger
+        examGenerateBtn?.addEventListener('click', () => generateQuestions(false));
+        examEmptyStartBtn?.addEventListener('click', () => generateQuestions(false));
+        examGenerateMoreBtn?.addEventListener('click', () => generateQuestions(true));
+
+        async function generateQuestions(isMore = false) {
+            const docCount = document.querySelectorAll('.dm-document-card').length;
+            if (docCount === 0) {
+                showToast('Please upload study notes (PDF or TXT) first before generating exam questions.', 'warning');
+                return;
+            }
+
+            if (isGeneratingQuestions) return;
+            isGeneratingQuestions = true;
+
+            if (examAlertBanner) examAlertBanner.classList.add('d-none');
+
+            // Button loading state
+            if (isMore) {
+                if (examGenerateMoreBtn) {
+                    examGenerateMoreBtn.disabled = true;
+                    examGenerateMoreBtn.innerHTML = '<span class="dm-spinner-sm me-1"></span> Loading...';
+                }
+            } else {
+                if (examGenerateBtn) {
+                    examGenerateBtn.disabled = true;
+                    if (examGenerateBtnText) examGenerateBtnText.textContent = 'Analyzing Syllabus...';
+                }
+                const existingEmpty = document.getElementById('dmExamEmptyState');
+                if (existingEmpty) existingEmpty.remove();
+
+                // Skeleton placeholders
+                if (examQuestionsList) {
+                    examQuestionsList.innerHTML = `
+                        <div class="dm-skeleton-shimmer p-4 rounded mb-3" style="min-height: 95px; background: rgba(255,255,255,0.03); border: 1px solid var(--dm-border-subtle); border-radius: 12px;"></div>
+                        <div class="dm-skeleton-shimmer p-4 rounded mb-3" style="min-height: 95px; background: rgba(255,255,255,0.03); border: 1px solid var(--dm-border-subtle); border-radius: 12px;"></div>
+                        <div class="dm-skeleton-shimmer p-4 rounded mb-3" style="min-height: 95px; background: rgba(255,255,255,0.03); border: 1px solid var(--dm-border-subtle); border-radius: 12px;"></div>
+                    `;
+                }
+            }
+
+            const docId = examDocSelector ? examDocSelector.value : '';
+            const excludeList = isMore ? cachedExamQuestions.map(q => q.question) : [];
+
+            try {
+                const response = await fetch('/api/exam/generate-questions/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        marks: activeMarks,
+                        document_id: docId || null,
+                        language: currentLanguage,
+                        count: isMore ? 4 : 6,
+                        exclude_questions: excludeList
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.questions && data.questions.length > 0) {
+                    if (!isMore) {
+                        if (examQuestionsList) examQuestionsList.innerHTML = '';
+                        cachedExamQuestions = [];
+                    }
+
+                    data.questions.forEach((q, idx) => {
+                        cachedExamQuestions.push(q);
+                        renderQuestionCard(q, cachedExamQuestions.length - 1, idx === 0 && !isMore);
+                    });
+
+                    // Subtoolbar update
+                    if (examSubToolbar) examSubToolbar.classList.remove('d-none');
+                    if (examQuestionCountBadge) {
+                        examQuestionCountBadge.textContent = `${cachedExamQuestions.length} Questions`;
+                    }
+                    if (examSourceInfo) {
+                        examSourceInfo.textContent = data.source_document ? `Grounded in ${data.source_document}` : 'Global Syllabus-Grounded';
+                    }
+
+                    filterQuestionsByMarks();
+                    showToast(`Generated ${data.questions.length} exam-oriented questions!`, 'success');
+                } else {
+                    const errorMsg = data.error || 'Could not generate exam questions from the selected material.';
+                    if (!isMore && cachedExamQuestions.length === 0 && examQuestionsList) {
+                        examQuestionsList.innerHTML = `
+                            <div class="alert alert-warning py-3 px-4 rounded-3">
+                                <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Question Generation Notice</div>
+                                <div class="small">${escapeHtml(errorMsg)}</div>
+                            </div>
+                        `;
+                    }
+                    showToast(errorMsg, 'warning');
+                }
+            } catch (err) {
+                console.error('Exam questions error:', err);
+                showToast('Network error while generating exam questions.', 'danger');
+                if (!isMore && cachedExamQuestions.length === 0 && examQuestionsList) {
+                    examQuestionsList.innerHTML = `
+                        <div class="alert alert-danger py-3 px-4 rounded-3">
+                            <i class="bi bi-wifi-off me-2"></i> Failed to communicate with exam engine. Please retry.
+                        </div>
+                    `;
+                }
+            } finally {
+                isGeneratingQuestions = false;
+                if (examGenerateBtn) {
+                    examGenerateBtn.disabled = false;
+                    if (examGenerateBtnText) examGenerateBtnText.textContent = 'Generate Questions';
+                }
+                if (examGenerateMoreBtn) {
+                    examGenerateMoreBtn.disabled = false;
+                    examGenerateMoreBtn.innerHTML = '<i class="bi bi-plus-circle me-1 text-primary"></i> <span>More Questions</span>';
+                }
+            }
+        }
+
+        // Render single Question Card
+        function renderQuestionCard(q, globalIndex, autoExpand = false) {
+            const cardId = `dm-exam-card-${globalIndex}-${Date.now()}`;
+            const collapseId = `dm-exam-collapse-${globalIndex}-${Date.now()}`;
+            const marksNum = parseInt(q.marks, 10) || 5;
+
+            const badgeClass = marksNum === 2 ? 'dm-badge-2m' : (marksNum === 10 ? 'dm-badge-10m' : 'dm-badge-5m');
+            const marksBorderClass = marksNum === 2 ? 'marks-2m' : (marksNum === 10 ? 'marks-10m' : 'marks-5m');
+
+            const card = document.createElement('div');
+            card.className = `dm-exam-card ${marksBorderClass}`;
+            card.id = cardId;
+            card.setAttribute('data-marks', marksNum.toString());
+
+            // Citations text
+            let citationsHtml = '';
+            if (q.citations && q.citations.length > 0) {
+                const pills = q.citations.map(c => {
+                    const name = typeof c === 'object' ? c.filename : c;
+                    const page = typeof c === 'object' && c.page ? ` (p. ${c.page})` : '';
+                    return `<span class="dm-exam-citation"><i class="bi bi-file-earmark-text text-primary me-1"></i>${escapeHtml(name)}${page}</span>`;
+                }).join(' ');
+                citationsHtml = `
+                    <div class="d-flex align-items-center gap-2 flex-wrap mt-2 pt-2 border-top dm-exam-citations-bar">
+                        <span class="small text-muted fw-semibold" style="font-size: 0.72rem;">Verified Sources:</span>
+                        ${pills}
+                    </div>
+                `;
+            }
+
+            // Marking scheme box
+            let markingSchemeHtml = '';
+            if (q.marking_scheme) {
+                const schemeItems = Array.isArray(q.marking_scheme) 
+                    ? q.marking_scheme.map(item => `<li>${escapeHtml(item)}</li>`).join('')
+                    : `<li>${escapeHtml(q.marking_scheme)}</li>`;
+
+                markingSchemeHtml = `
+                    <div class="dm-exam-marking-scheme p-2 rounded mb-3">
+                        <div class="d-flex align-items-center gap-1 small fw-bold text-warning mb-1">
+                            <i class="bi bi-award-fill"></i> Exam Marking Breakdown (${marksNum} Marks Total)
+                        </div>
+                        <ul class="m-0 ps-3 small text-muted" style="font-size: 0.75rem;">
+                            ${schemeItems}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // Labelled Mermaid Diagram
+            const diagramId = `dm-exam-diagram-${globalIndex}-${Date.now()}`;
+            let diagramHtml = '';
+            if (q.diagram && typeof q.diagram === 'string' && q.diagram.trim().length > 5) {
+                diagramHtml = `
+                    <div class="dm-exam-diagram-container border rounded p-3 my-3 bg-light" id="${diagramId}">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-primary-subtle text-primary fw-semibold small">
+                                <i class="bi bi-diagram-3-fill me-1"></i> Labelled Exam Concept Diagram
+                            </span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary dm-exam-diagram-zoom-btn" title="Inspect full resolution">
+                                <i class="bi bi-arrows-fullscreen"></i>
+                            </button>
+                        </div>
+                        <div class="dm-diagram-svg-wrap text-center" id="svg-wrap-${diagramId}">
+                            <div class="dm-spinner-sm"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const formattedAnswer = q.answer ? formatMarkdown(q.answer) : '<div class="text-muted small fst-italic">No model answer generated yet. Click "Generate Answer" below.</div>';
+
+            card.innerHTML = `
+                <div class="dm-exam-card-header d-flex align-items-start justify-content-between gap-2" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="${autoExpand ? 'true' : 'false'}">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                            <span class="dm-exam-badge ${badgeClass}">${marksNum} Marks</span>
+                            <span class="dm-exam-type-pill">${escapeHtml(q.category || 'Exam Question')}</span>
+                        </div>
+                        <h6 class="dm-exam-question-title m-0 fw-bold">${escapeHtml(q.question)}</h6>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 flex-shrink-0 pt-1">
+                        <button type="button" class="btn btn-sm btn-icon text-muted btn-copy-exam-qa" title="Copy question & model answer">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                        <i class="bi bi-chevron-down text-muted dm-chevron-icon transition-transform ${autoExpand ? 'rotate-180' : ''}" style="font-size: 0.8rem;"></i>
+                    </div>
+                </div>
+
+                <div class="collapse ${autoExpand ? 'show' : ''} dm-exam-answer-collapse" id="${collapseId}">
+                    <div class="p-3 border-top dm-exam-card-body">
+                        ${markingSchemeHtml}
+                        <div class="dm-exam-model-answer mb-2" id="answer-text-${cardId}">
+                            ${formattedAnswer}
+                        </div>
+                        ${diagramHtml}
+                        ${citationsHtml}
+
+                        <div class="d-flex align-items-center justify-content-between pt-2 mt-3 border-top dm-exam-card-footer">
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary btn-regen-exam-answer" title="Regenerate or deepen model answer">
+                                    <i class="bi bi-arrow-clockwise me-1"></i> Re-solve
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary btn-tts-exam" title="Listen aloud">
+                                    <i class="bi bi-volume-up me-1"></i> Listen
+                                </button>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-light border btn-copy-exam-qa-bottom">
+                                <i class="bi bi-clipboard me-1"></i> Copy Answer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (examQuestionsList) examQuestionsList.appendChild(card);
+
+            // Render diagram if present
+            if (q.diagram && typeof q.diagram === 'string' && q.diagram.trim().length > 5) {
+                const svgWrap = document.getElementById(`svg-wrap-${diagramId}`);
+                if (svgWrap) {
+                    renderMermaidDiagram(svgWrap, q.diagram, diagramId);
+                }
+
+                const zoomBtn = card.querySelector('.dm-exam-diagram-zoom-btn');
+                if (zoomBtn) {
+                    zoomBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        const targetWrap = document.getElementById(`svg-wrap-${diagramId}`);
+                        if (targetWrap) {
+                            openDiagramZoomModal(targetWrap.innerHTML, `${q.question} — Diagram`);
+                        }
+                    };
+                }
+            }
+
+            // Copy Action helper
+            function copySingleQuestionAndAnswer(btn) {
+                const textToCopy = `### [${marksNum} Marks] ${q.question}\n\n**Category:** ${q.category || 'Exam Question'}\n\n**Model Answer:**\n${q.answer || ''}\n\n${q.marking_scheme ? `**Marking Scheme:**\n${Array.isArray(q.marking_scheme) ? q.marking_scheme.join('\n- ') : q.marking_scheme}\n\n` : ''}${q.citations && q.citations.length > 0 ? `**Verified Citations:** ${q.citations.map(c => typeof c === 'object' ? `${c.filename}${c.page ? ` (p.${c.page})` : ''}` : c).join(', ')}\n` : ''}`;
+                navigator.clipboard.writeText(textToCopy);
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check2 text-success"></i>';
+                showToast('Question and model answer copied to clipboard!', 'info');
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+            }
+
+            // Wire up copy buttons
+            card.querySelectorAll('.btn-copy-exam-qa, .btn-copy-exam-qa-bottom').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    copySingleQuestionAndAnswer(btn);
+                };
+            });
+
+            // Wire up Re-solve / Regenerate Answer
+            const regenBtn = card.querySelector('.btn-regen-exam-answer');
+            if (regenBtn) {
+                regenBtn.onclick = async (e) => {
+                    e.stopPropagation();
+                    regenBtn.disabled = true;
+                    regenBtn.innerHTML = '<span class="dm-spinner-sm me-1"></span> Re-solving...';
+
+                    const answerContainer = card.querySelector(`#answer-text-${cardId}`);
+                    try {
+                        const res = await fetch('/api/exam/generate-answer/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCsrfToken()
+                            },
+                            body: JSON.stringify({
+                                question: q.question,
+                                marks: marksNum,
+                                document_id: examDocSelector ? examDocSelector.value : null,
+                                language: currentLanguage
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.success && data.answer) {
+                            q.answer = data.answer;
+                            if (data.citations) q.citations = data.citations;
+                            if (data.diagram) q.diagram = data.diagram;
+                            if (answerContainer) {
+                                answerContainer.innerHTML = formatMarkdown(data.answer);
+                            }
+                            showToast('Model answer updated with fresh citations!', 'success');
+                        } else {
+                            showToast(data.error || 'Failed to re-solve answer.', 'danger');
+                        }
+                    } catch (err) {
+                        showToast('Network error while re-solving question.', 'danger');
+                    } finally {
+                        regenBtn.disabled = false;
+                        regenBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Re-solve';
+                    }
+                };
+            }
+
+            // Wire up TTS
+            const ttsBtn = card.querySelector('.btn-tts-exam');
+            if (ttsBtn) {
+                ttsBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    speakText(q.answer || q.question, currentLanguage, ttsBtn);
+                };
+            }
+        }
+
+        // Custom Question Submission
+        customQuestionSubmitBtn?.addEventListener('click', async () => {
+            const questionText = customExamQuestionInput ? customExamQuestionInput.value.trim() : '';
+            if (!questionText) {
+                showToast('Please type an exam question to answer.', 'warning');
+                return;
+            }
+
+            const docCount = document.querySelectorAll('.dm-document-card').length;
+            if (docCount === 0) {
+                showToast('Please upload study notes first to solve questions against.', 'warning');
+                return;
+            }
+
+            customQuestionSubmitBtn.disabled = true;
+            if (customQuestionBtnText) customQuestionBtnText.textContent = 'Solving...';
+
+            try {
+                const res = await fetch('/api/exam/generate-answer/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        question: questionText,
+                        marks: selectedCustomMarks,
+                        document_id: examDocSelector ? examDocSelector.value : null,
+                        language: currentLanguage
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    const newQ = {
+                        question: questionText,
+                        marks: selectedCustomMarks,
+                        category: selectedCustomMarks === 2 ? 'Definition / Concept' : (selectedCustomMarks === 10 ? 'Comprehensive Analysis' : 'Structured Explanation'),
+                        answer: data.answer,
+                        citations: data.citations || [],
+                        marking_scheme: data.marking_scheme || null,
+                        diagram: data.diagram || null
+                    };
+
+                    const emptyStateEl = document.getElementById('dmExamEmptyState');
+                    if (emptyStateEl) emptyStateEl.remove();
+                    cachedExamQuestions.unshift(newQ);
+
+                    // Render and move to top
+                    renderQuestionCard(newQ, cachedExamQuestions.length, true);
+                    const newCard = examQuestionsList?.lastElementChild;
+                    if (newCard && examQuestionsList) examQuestionsList.prepend(newCard);
+
+                    if (examSubToolbar) examSubToolbar.classList.remove('d-none');
+                    if (examQuestionCountBadge) {
+                        examQuestionCountBadge.textContent = `${cachedExamQuestions.length} Questions`;
+                    }
+
+                    if (customExamQuestionInput) customExamQuestionInput.value = '';
+                    showToast('Question solved and added to exam sheet!', 'success');
+                } else {
+                    showToast(data.error || 'Could not solve question from uploaded documents.', 'danger');
+                }
+            } catch (err) {
+                showToast('Network error while solving question.', 'danger');
+            } finally {
+                customQuestionSubmitBtn.disabled = false;
+                if (customQuestionBtnText) customQuestionBtnText.textContent = 'Answer Question';
+            }
+        });
+
+        // Copy All Revision Sheet Action
+        examCopyAllBtn?.addEventListener('click', () => {
+            if (cachedExamQuestions.length === 0) {
+                showToast('No exam questions generated yet to copy.', 'info');
+                return;
+            }
+
+            let markdownSheet = `# DocuMind AI — Exam Preparation Revision Sheet\n`;
+            markdownSheet += `*Generated on: ${new Date().toLocaleDateString()} strictly from uploaded study material*\n\n`;
+            markdownSheet += `---\n\n`;
+
+            cachedExamQuestions.forEach((q, idx) => {
+                markdownSheet += `### Question ${idx + 1} [${q.marks} Marks]: ${q.question}\n`;
+                markdownSheet += `**Category:** ${q.category || 'Exam Question'}\n\n`;
+                markdownSheet += `**Model Answer:**\n${q.answer || 'Answer not generated'}\n\n`;
+                if (q.marking_scheme) {
+                    markdownSheet += `**Marking Scheme:**\n`;
+                    if (Array.isArray(q.marking_scheme)) {
+                        q.marking_scheme.forEach(m => { markdownSheet += `- ${m}\n`; });
+                    } else {
+                        markdownSheet += `- ${q.marking_scheme}\n`;
+                    }
+                    markdownSheet += `\n`;
+                }
+                if (q.citations && q.citations.length > 0) {
+                    markdownSheet += `**Verified Sources:** ${q.citations.map(c => typeof c === 'object' ? `${c.filename}${c.page ? ` (p.${c.page})` : ''}` : c).join(', ')}\n\n`;
+                }
+                markdownSheet += `---\n\n`;
+            });
+
+            navigator.clipboard.writeText(markdownSheet);
+            examCopyAllBtn.innerHTML = '<i class="bi bi-check2-circle me-1 text-success"></i> <span>Copied!</span>';
+            showToast('Complete Exam Revision Sheet copied to clipboard in clean Markdown format!', 'success');
+            setTimeout(() => {
+                examCopyAllBtn.innerHTML = '<i class="bi bi-clipboard-check me-1 text-success"></i> <span>Copy Revision Sheet</span>';
+            }, 2500);
+        });
+
+        // Expose sync function to workspace document changes
+        window.dmSyncExamDocSelector = syncExamDocSelector;
+        syncExamDocSelector();
+    }
+
+    initExamPrepMode();
 
     // Toast alert helper
     function showToast(message, type = 'info') {

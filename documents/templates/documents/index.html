@@ -54,11 +54,16 @@
                     <span>SYSTEM ONLINE</span>
                 </div>
 
-                <!-- Jump to Studio Button (Desktop) -->
-                <a href="#dmStudioWorkspace" class="btn btn-sm dm-btn-nav d-none d-md-inline-flex">
-                    <i class="bi bi-cpu text-primary"></i>
-                    <span>Studio</span>
-                </a>
+                <!-- Mode Switcher (Chat Studio / Exam Prep Mode) -->
+                <div class="dm-mode-switcher-nav d-inline-flex align-items-center" role="tablist">
+                    <button type="button" class="btn btn-sm dm-nav-mode-btn active" id="dmNavChatModeBtn" title="Switch to AI Chat Studio">
+                        <i class="bi bi-chat-quote-fill me-1 text-primary"></i> <span class="d-none d-md-inline">Chat Studio</span>
+                    </button>
+                    <button type="button" class="btn btn-sm dm-nav-mode-btn" id="dmNavExamModeBtn" title="Switch to University Exam Preparation Mode">
+                        <i class="bi bi-mortarboard-fill me-1 text-warning"></i> <span>Exam Prep</span>
+                        <span class="badge rounded-pill bg-primary ms-1 d-none d-lg-inline" style="font-size:0.58rem; padding: 0.2em 0.45em;">MODE</span>
+                    </button>
+                </div>
 
                 <!-- Language Selector Dropdown -->
                 <div class="dropdown dm-lang-dropdown-wrapper">
@@ -122,10 +127,14 @@
                         Upload your files, explore their meaning, and discover answers grounded in your own knowledge. Powered by dense vector search and strict generative AI.
                     </p>
                     <div class="dm-hero-actions">
-                        <a href="#dmStudioWorkspace" class="dm-btn-primary">
+                        <a href="#dmStudioWorkspace" class="dm-btn-primary" id="dmHeroOpenStudioBtn">
                             <i class="bi bi-cpu-fill"></i>
                             <span>Open Intelligence Studio</span>
                         </a>
+                        <button type="button" class="dm-btn-primary" id="dmHeroTriggerExamPrep" style="background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 50%, #7C3AED 100%);">
+                            <i class="bi bi-mortarboard-fill text-warning"></i>
+                            <span>Exam Prep Mode</span>
+                        </button>
                         <button type="button" class="dm-btn-outline" id="dmHeroTriggerUpload">
                             <i class="bi bi-cloud-arrow-up"></i>
                             <span>Upload a Document</span>
@@ -365,22 +374,45 @@
                 <div class="dm-panel-card">
                     
                     <!-- Panel Header -->
-                    <div class="dm-panel-header">
-                        <div>
-                            <h2 class="dm-panel-title">
-                                <i class="bi bi-chat-left-dots text-primary"></i> AI Conversation Canvas
-                            </h2>
-                            <div class="dm-panel-subtitle">Context-Grounded Neural Synthesis</div>
+                    <div class="dm-panel-header" id="dmPanelHeaderCenter">
+                        <!-- Chat Studio Header View -->
+                        <div id="dmHeaderChatView" class="d-flex justify-content-between align-items-center w-100">
+                            <div>
+                                <h2 class="dm-panel-title">
+                                    <i class="bi bi-chat-left-dots text-primary"></i> AI Conversation Canvas
+                                </h2>
+                                <div class="dm-panel-subtitle">Context-Grounded Neural Synthesis</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm dm-btn-ghost text-warning" id="dmHeaderSwitchToExamBtn" title="Switch to Exam Prep Mode">
+                                    <i class="bi bi-mortarboard me-1"></i> <span class="d-none d-md-inline">Exam Mode</span>
+                                </button>
+                                <button type="button" id="dmClearChatBtn" class="btn btn-sm dm-btn-ghost" title="Clear chat history">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i> <span class="d-none d-md-inline">Clear Canvas</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <button type="button" id="dmClearChatBtn" class="btn btn-sm dm-btn-ghost" title="Clear chat history">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i> <span class="d-none d-md-inline">Clear Canvas</span>
-                            </button>
+
+                        <!-- Exam Prep Mode Header View -->
+                        <div id="dmHeaderExamView" class="d-none d-flex justify-content-between align-items-center w-100">
+                            <div>
+                                <h2 class="dm-panel-title">
+                                    <i class="bi bi-mortarboard-fill text-warning"></i> Exam Preparation Studio
+                                </h2>
+                                <div class="dm-panel-subtitle">Syllabus-Oriented Questions & Academic Model Answers</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm dm-btn-ghost" id="dmHeaderSwitchToChatBtn" title="Switch back to AI Chat Studio">
+                                    <i class="bi bi-chat-left-text me-1 text-primary"></i> <span class="d-none d-md-inline">Chat Studio</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Scrollable Chat Stream -->
-                    <div class="dm-chat-canvas" id="dmChatStream">
+                    <!-- VIEW 1: Chat Canvas View -->
+                    <div id="dmChatCanvasView" class="d-flex flex-column flex-grow-1 overflow-hidden">
+                        <!-- Scrollable Chat Stream -->
+                        <div class="dm-chat-canvas" id="dmChatStream">
                         
                         <!-- Dynamic Welcome / Empty State Screen -->
                         <div id="dmWelcomeHero" class="dm-welcome-box">
@@ -521,7 +553,142 @@
                             <span class="text-muted small d-none d-sm-inline">Press <kbd class="dm-kbd">Enter ↵</kbd> to transmit</span>
                         </div>
                     </div>
+                </div> <!-- End #dmChatCanvasView -->
 
+                <!-- VIEW 2: Dedicated Exam Preparation Canvas View -->
+                <div id="dmExamCanvasView" class="d-none d-flex flex-column flex-grow-1 overflow-hidden dm-exam-canvas">
+                    <!-- Exam Control Bar -->
+                    <div class="dm-exam-toolbar p-3 border-bottom">
+                        <div class="row g-2 align-items-center">
+                            <!-- Target Document Dropdown -->
+                            <div class="col-sm-6 col-md-5">
+                                <label class="dm-exam-label small fw-semibold text-muted mb-1 d-block" for="dmExamDocSelector">
+                                    <i class="bi bi-book-half text-primary me-1"></i> Target Study Material
+                                </label>
+                                <select class="form-select form-select-sm dm-exam-select" id="dmExamDocSelector">
+                                    <option value="">All Uploaded Documents (Global Syllabus)</option>
+                                    {% for doc in documents %}
+                                        <option value="{{ doc.id }}">{{ doc.original_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Marks Category Filter Pills -->
+                            <div class="col-sm-6 col-md-4">
+                                <label class="dm-exam-label small fw-semibold text-muted mb-1 d-block">
+                                    <i class="bi bi-award text-warning me-1"></i> Marks Category
+                                </label>
+                                <div class="btn-group btn-group-sm w-100 dm-marks-btn-group" role="group" aria-label="Marks Selector">
+                                    <button type="button" class="btn btn-outline-secondary dm-marks-btn active" data-marks="all">All Marks</button>
+                                    <button type="button" class="btn btn-outline-secondary dm-marks-btn" data-marks="2">2M</button>
+                                    <button type="button" class="btn btn-outline-secondary dm-marks-btn" data-marks="5">5M</button>
+                                    <button type="button" class="btn btn-outline-secondary dm-marks-btn" data-marks="10">10M</button>
+                                </div>
+                            </div>
+
+                            <!-- Primary Generate Action Button -->
+                            <div class="col-12 col-md-3 d-flex align-items-end">
+                                <button type="button" class="btn btn-primary btn-sm w-100 fw-semibold dm-btn-exam-generate d-flex align-items-center justify-content-center gap-2" id="dmExamGenerateBtn">
+                                    <i class="bi bi-sparkles"></i>
+                                    <span id="dmExamGenerateBtnText">Generate Questions</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Secondary Exam Toolbar Actions (shown when questions exist) -->
+                        <div class="d-flex align-items-center justify-content-between mt-2 pt-2 border-top dm-exam-subtoolbar d-none" id="dmExamSubToolbar">
+                            <div class="small text-muted d-flex align-items-center gap-2">
+                                <span class="badge bg-primary-subtle text-primary border" id="dmExamQuestionCountBadge">0 Questions</span>
+                                <span class="d-none d-sm-inline">&bull;</span>
+                                <span class="d-none d-sm-inline text-truncate" id="dmExamSourceInfo">Syllabus-Grounded</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <button type="button" class="btn btn-sm dm-btn-subaction" id="dmExamGenerateMoreBtn" title="Generate More Questions">
+                                    <i class="bi bi-plus-circle me-1 text-primary"></i> <span>More Questions</span>
+                                </button>
+                                <button type="button" class="btn btn-sm dm-btn-subaction" id="dmExamCopyAllBtn" title="Copy All Questions & Model Answers">
+                                    <i class="bi bi-clipboard-check me-1 text-success"></i> <span>Copy Revision Sheet</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exam Content Scroll Area -->
+                    <div class="flex-grow-1 overflow-y-auto p-3" id="dmExamContentScrollArea">
+                        <!-- Live Alert Banner (warnings/errors) -->
+                        <div id="dmExamAlertBanner" class="alert alert-danger d-none small py-2 px-3 mb-3" role="alert"></div>
+
+                        <!-- Dynamic Questions List Container -->
+                        <div id="dmExamQuestionsList" class="d-flex flex-column gap-3">
+                            <!-- Initial Empty State -->
+                            <div class="dm-exam-empty-state text-center py-5" id="dmExamEmptyState">
+                                <div class="dm-exam-symbol-circle mx-auto mb-3">
+                                    <i class="bi bi-mortarboard text-warning fs-1"></i>
+                                </div>
+                                <h4 class="fw-bold mb-2">University Exam Preparation Mode</h4>
+                                <p class="text-muted small mx-auto mb-4" style="max-width: 520px;">
+                                    Generate college examination questions with structured model answers, marking schemes, and citations based strictly on your uploaded study material.
+                                </p>
+
+                                <!-- 3 Feature Cards for 2M, 5M, 10M -->
+                                <div class="row g-3 justify-content-center text-start mb-4" style="max-width: 700px; margin: 0 auto;">
+                                    <div class="col-md-4">
+                                        <div class="dm-exam-tier-card p-3 rounded border">
+                                            <span class="badge bg-primary mb-2">2 Marks</span>
+                                            <div class="fw-bold small mb-1">Definitions & Facts</div>
+                                            <div class="text-muted" style="font-size: 0.78rem;">Concise direct answers, key terminology, and fundamental points for quick revision.</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="dm-exam-tier-card p-3 rounded border">
+                                            <span class="badge bg-warning text-dark mb-2">5 Marks</span>
+                                            <div class="fw-bold small mb-1">Structured Explanations</div>
+                                            <div class="text-muted" style="font-size: 0.78rem;">Point-wise answers, differentiate tables, working principles, and practical examples.</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="dm-exam-tier-card p-3 rounded border">
+                                            <span class="badge bg-danger mb-2">10 Marks</span>
+                                            <div class="fw-bold small mb-1">Comprehensive Long Answers</div>
+                                            <div class="text-muted" style="font-size: 0.78rem;">Academic intro, deep logical headings, labelled Mermaid diagrams, advantages, and conclusion.</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% if documents %}
+                                    <button type="button" class="btn btn-primary px-4 py-2 fw-semibold rounded-pill dm-btn-start-exam" id="dmExamEmptyStartBtn">
+                                        <i class="bi bi-sparkles me-1"></i> Generate Important Questions Now
+                                    </button>
+                                {% else %}
+                                    <button type="button" class="btn btn-outline-primary px-4 py-2 fw-semibold rounded-pill" id="dmExamEmptyUploadBtn">
+                                        <i class="bi bi-cloud-arrow-up me-1"></i> Upload Study Notes First
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Custom Question Asking Box at Bottom of Exam Canvas -->
+                        <div class="mt-4 pt-3 border-top" id="dmExamCustomQuestionBox">
+                            <label class="dm-exam-label small fw-semibold text-muted mb-1 d-block">
+                                <i class="bi bi-patch-question text-info me-1"></i> Have a specific exam question to solve?
+                            </label>
+                            <div class="dm-exam-custom-input-box p-2 rounded border">
+                                <input type="text" class="form-control form-control-sm dm-custom-q-input mb-2" id="dmCustomExamQuestionInput" placeholder="Enter any question from previous years or syllabus (e.g., Differentiate between overloading and overriding)...">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="small text-muted me-1">Generate as:</span>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm dm-custom-marks-btn" data-marks="2">2 Marks</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm dm-custom-marks-btn active" data-marks="5">5 Marks</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm dm-custom-marks-btn" data-marks="10">10 Marks</button>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-primary ms-auto px-3 d-flex align-items-center gap-1" id="dmCustomQuestionSubmitBtn">
+                                        <i class="bi bi-lightning-charge"></i>
+                                        <span id="dmCustomQuestionBtnText">Answer Question</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -13,6 +13,7 @@ This module coordinates the complete Retrieval-Augmented Generation pipeline:
 import os
 import re
 import json
+import time
 from pathlib import Path
 from typing import List, Dict, Any, Tuple, Optional
 
@@ -495,10 +496,11 @@ def expand_cross_lingual_query(query: str, api_key: str = '') -> str:
     return query
 
 
-def retrieve_relevant_chunks(query: str, top_k: int = 4) -> List[Dict[str, Any]]:
+def retrieve_relevant_chunks(query: str, top_k: int = 4, document_id: Optional[int] = None) -> List[Dict[str, Any]]:
     """
     Performs cosine similarity search against ChromaDB using the embedded query.
     Supports cross-lingual query expansion for Hindi and Marathi queries.
+    Supports filtering to a specific document_id when provided.
     Returns ranked chunks with confidence/relevance scores.
     """
     collection = get_chroma_collection()
@@ -530,11 +532,18 @@ def retrieve_relevant_chunks(query: str, top_k: int = 4) -> List[Dict[str, Any]]
     query_embeddings = generate_dense_embeddings(queries_to_search)
 
     for q, q_emb in zip(queries_to_search, query_embeddings):
-        results = collection.query(
-            query_embeddings=[q_emb],
-            n_results=n_results,
-            include=["documents", "metadatas", "distances"]
-        )
+        query_kwargs = {
+            "query_embeddings": [q_emb],
+            "n_results": n_results,
+            "include": ["documents", "metadatas", "distances"]
+        }
+        if document_id is not None:
+            try:
+                query_kwargs["where"] = {"document_id": int(document_id)}
+            except (ValueError, TypeError):
+                pass
+
+        results = collection.query(**query_kwargs)
 
         if results and "documents" in results and results["documents"]:
             docs = results["documents"][0]
@@ -838,3 +847,394 @@ def query_rag_pipeline(query: str, top_k: int = 4, language: str = 'en', force_v
             "language": lang,
             "total_vectors": get_total_indexed_vectors()
         }
+
+
+def generate_exam_questions(
+    marks: str = 'all',
+    document_id: Optional[int] = None,
+    language: str = 'en',
+    count: int = 5,
+    exclude_questions: Optional[List[str]] = None
+) -> Dict[str, Any]:
+    """
+    Generates syllabus-oriented college examination questions with structured model answers
+    grounded strictly in the uploaded document content.
+    Supports marks categories: '2', '5', '10', or 'all'.
+    """
+    collection = get_chroma_collection()
+    if collection.count() == 0:
+        return {
+            "success": False,
+            "error": "No documents indexed in knowledge base. Please upload study material first.",
+            "questions": []
+        }
+
+    lang = language.lower() if language in LANGUAGE_CONFIG else 'en'
+    lang_info = LANGUAGE_CONFIG[lang]
+
+    # Pull diverse chunks across the syllabus
+    search_terms = [
+        "core principles concepts definitions architecture overview",
+        "key mechanisms classification working differences comparison",
+        "advantages disadvantages applications practical examples"
+    ]
+    sampled_chunks = []
+    seen_chunk_ids = set()
+
+    for st in search_terms:
+        chunks = retrieve_relevant_chunks(st, top_k=5, document_id=document_id)
+        for c in chunks:
+            cid = f"{c.get('document_id')}_{c.get('chunk_index')}"
+            if cid not in seen_chunk_ids:
+                seen_chunk_ids.add(cid)
+                sampled_chunks.append(c)
+
+    if not sampled_chunks:
+        try:
+            get_kwargs = {"limit": 12}
+            if document_id:
+                get_kwargs["where"] = {"document_id": int(document_id)}
+            direct_data = collection.get(**get_kwargs)
+            if direct_data and direct_data.get("documents"):
+                for doc_text, meta in zip(direct_data["documents"], direct_data["metadatas"]):
+                    sampled_chunks.append({
+                        "document_id": meta.get("document_id"),
+                        "filename": meta.get("filename", "Document"),
+                        "page": meta.get("page", 1),
+                        "chunk_index": meta.get("chunk_index", 1),
+                        "text": doc_text,
+                        "relevance_score": 90
+                    })
+        except Exception:
+            pass
+
+    if not sampled_chunks:
+        return {
+            "success": False,
+            "error": "Could not retrieve sufficient text from the selected document.",
+            "questions": []
+        }
+
+    # Format context passages
+    ctx_blocks = []
+    for idx, c in enumerate(sampled_chunks[:12], start=1):
+        ctx_blocks.append(f"[Chunk {idx} | Document: {c['filename']} | Page: {c['page']}]\n{c['text']}")
+    formatted_context = "\n\n".join(ctx_blocks)
+
+    api_key = get_active_gemini_api_key()
+    if not api_key:
+        return {
+            "success": False,
+            "error": "Gemini API key is not configured. Please add your GEMINI_API_KEY to .env or click the Key button in the header.",
+            "questions": []
+        }
+
+    marks_str = str(marks).lower().strip()
+    if marks_str == '2':
+        marks_instruction = (
+            "Generate 4 to 5 high-priority 2-MARK QUESTIONS.\n"
+            "Criteria for 2 Marks:\n"
+            "- Focus on definitions, core terminology, key facts, and essential distinctions.\n"
+            "- Model Answer MUST be concise and direct (2 to 4 sentences):\n"
+            "  * Clear formal definition.\n"
+            "  * Exactly 2 essential bullet points or key facts.\n"
+            "  * No unnecessary filler."
+        )
+    elif marks_str == '5':
+        marks_instruction = (
+            "Generate 4 to 5 medium-length 5-MARK QUESTIONS.\n"
+            "Criteria for 5 Marks:\n"
+            "- Focus on structured explanations, comparisons ('Differentiate between A and B'), key principles, or advantages/applications.\n"
+            "- Model Answer MUST be medium-length and structured:\n"
+            "  * Brief introduction / definition (1-2 sentences).\n"
+            "  * 3 to 4 numbered points or comparison table with bold headings.\n"
+            "  * A concrete example or code snippet where supported by the text.\n"
+            "  * Clear, academically appropriate layout."
+        )
+    elif marks_str == '10':
+        marks_instruction = (
+            "Generate 3 to 4 comprehensive 10-MARK LONG QUESTIONS.\n"
+            "Criteria for 10 Marks:\n"
+            "- Focus on extensive topics, full architecture, end-to-end working principles, detailed analysis, and core system components.\n"
+            "- Model Answer MUST be an exhaustive university-grade exam answer:\n"
+            "  * **1. Introduction**: Academic context and formal definition.\n"
+            "  * **2. Core Working & Principles**: Detailed numbered sections with headings.\n"
+            "  * **3. Labelled Architecture / Flowchart**: Valid Mermaid diagram code (or block diagram).\n"
+            "  * **4. Key Advantages, Limitations & Applications**: Bulleted real-world takeaways.\n"
+            "  * **5. Conclusion**: Summary wrap-up.\n"
+            "  * **Marking Scheme**: A clear breakdown of marks allocation (e.g., Intro 2M, Explanation 4M, Diagram 2M, Conclusion 2M)."
+        )
+    else:  # 'all'
+        marks_instruction = (
+            "Generate a balanced set of 5 UNIVERSITY EXAM QUESTIONS:\n"
+            "- Two 2-Mark questions (definitions, terminology, key facts).\n"
+            "- Two 5-Mark questions (structured explanations, comparisons, numbered points, examples).\n"
+            "- One 10-Mark comprehensive question (in-depth architecture, introduction, logical sections, Mermaid diagram, and conclusion).\n"
+            "Format each model answer strictly appropriate to its marks level."
+        )
+
+    exclude_clause = ""
+    if exclude_questions and isinstance(exclude_questions, list):
+        exclude_clause = "Do NOT repeat or generate questions similar to these existing ones:\n" + "\n".join(f"- {q}" for q in exclude_questions[:10]) + "\n\n"
+
+    system_prompt = (
+        "You are an expert University Examination Paper Setter and Senior Academic Professor powered by DocuMind AI. "
+        "Your task is to generate high-yield, college/university exam-oriented questions and complete, academically rigorous model answers "
+        "grounded STRICTLY in the provided study material chunks below.\n\n"
+        f"{marks_instruction}\n\n"
+        f"{exclude_clause}"
+        "STRICT GROUNDING & CITATION RULES:\n"
+        "1. Every question and answer must be 100% grounded in the provided document chunks. NEVER hallucinate or invent outside facts.\n"
+        "2. Provide genuine source citations from chunk headers (document name and page number).\n"
+        "3. For 10-mark questions with diagrams, provide valid Mermaid diagram code (e.g. `flowchart TD` or `graph TD`) with all node text in double quotes.\n"
+        f"4. Language instruction: {lang_info['instruction']}\n"
+        "5. Output STRICTLY a valid JSON object matching this schema without any markdown wrapper or explanation outside the JSON:\n"
+        "{\n"
+        '  "questions": [\n'
+        '    {\n'
+        '      "id": "q1",\n'
+        '      "marks": 2,\n'
+        '      "category": "Definition" | "Differentiate" | "Working Principle" | "Detailed Analysis" | "Core Concept" | "Advantages & Limitations",\n'
+        '      "question": "Question text here",\n'
+        '      "citations": [{"document": "filename.pdf", "page": 1}],\n'
+        '      "model_answer": "Complete Markdown formatted answer tailored to the marks level.",\n'
+        '      "diagram": null | {"type": "mermaid", "code": "graph TD\\n...", "title": "Diagram Title"}\n'
+        '    }\n'
+        '  ]\n'
+        "}"
+    )
+
+    prompt = (
+        f"{system_prompt}\n\n"
+        f"--- STUDY MATERIAL CONTEXT START ---\n"
+        f"{formatted_context}\n"
+        f"--- STUDY MATERIAL CONTEXT END ---\n\n"
+        f"Generate the exam questions JSON:"
+    )
+
+    configured_model = getattr(settings, 'GEMINI_MODEL', 'gemini-3.5-flash-lite')
+    candidate_models = [configured_model, 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-flash-latest']
+    seen = set()
+    candidate_models = [m for m in candidate_models if not (m in seen or seen.add(m))]
+
+    raw_response = None
+    last_err = None
+
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        for m in candidate_models:
+            try:
+                resp = client.models.generate_content(model=m, contents=prompt)
+                if hasattr(resp, 'text') and resp.text:
+                    raw_response = resp.text.strip()
+                    break
+            except Exception as e:
+                last_err = e
+                continue
+    except Exception as e:
+        last_err = e
+
+    if not raw_response:
+        try:
+            import google.generativeai as legacy_genai
+            legacy_genai.configure(api_key=api_key)
+            for m in candidate_models:
+                try:
+                    m_clean = m.replace('models/', '')
+                    model = legacy_genai.GenerativeModel(m_clean)
+                    resp = model.generate_content(prompt)
+                    if hasattr(resp, 'text') and resp.text:
+                        raw_response = resp.text.strip()
+                        break
+                except Exception as e:
+                    last_err = e
+        except Exception:
+            pass
+
+    if not raw_response:
+        return {
+            "success": False,
+            "error": f"Failed to generate exam questions from Gemini API: {str(last_err)}",
+            "questions": []
+        }
+
+    # Parse JSON
+    parsed_questions = []
+    text_to_parse = raw_response.strip()
+    json_match = re.search(r'```(?:json)?\s*(\{[\s\S]*?\})\s*```', text_to_parse, re.DOTALL)
+    if json_match:
+        text_to_parse = json_match.group(1).strip()
+    else:
+        b_start = text_to_parse.find('{')
+        b_end = text_to_parse.rfind('}')
+        if b_start != -1 and b_end > b_start:
+            text_to_parse = text_to_parse[b_start:b_end + 1]
+
+    try:
+        data = json.loads(text_to_parse)
+        raw_qs = data.get('questions', [])
+        for idx, q in enumerate(raw_qs, start=1):
+            q_id = q.get('id') or f"exam_q_{int(time.time())}_{idx}"
+            raw_cites = q.get('citations') or []
+            norm_cites = []
+            for c in raw_cites:
+                if isinstance(c, dict):
+                    fname = c.get('document') or c.get('filename') or ''
+                    pg = c.get('page')
+                    norm_cites.append({'filename': fname, 'document': fname, 'page': pg})
+                elif isinstance(c, str):
+                    norm_cites.append({'filename': c, 'document': c, 'page': None})
+
+            ans_text = q.get('model_answer') or q.get('answer') or ''
+            parsed_questions.append({
+                "id": str(q_id),
+                "marks": int(q.get('marks') or 5),
+                "category": q.get('category') or 'Core Concept',
+                "question": q.get('question') or 'Exam Question',
+                "citations": norm_cites,
+                "model_answer": ans_text,
+                "answer": ans_text,
+                "marking_scheme": q.get('marking_scheme'),
+                "diagram": q.get('diagram')
+            })
+    except Exception as parse_err:
+        return {
+            "success": False,
+            "error": f"Could not parse exam questions response: {str(parse_err)}",
+            "questions": []
+        }
+
+    return {
+        "success": True,
+        "questions": parsed_questions,
+        "marks_filter": marks,
+        "total_generated": len(parsed_questions)
+    }
+
+
+def generate_exam_answer_for_question(
+    question: str,
+    marks: int = 5,
+    document_id: Optional[int] = None,
+    language: str = 'en'
+) -> Dict[str, Any]:
+    """
+    Generates an individual exam-ready model answer tailored to the specified marks category
+    based strictly on retrieved passages.
+    """
+    marks_int = int(marks) if str(marks).isdigit() else 5
+    if marks_int not in [2, 5, 10]:
+        marks_int = 5
+
+    retrieved_chunks = retrieve_relevant_chunks(question, top_k=6, document_id=document_id)
+    if not retrieved_chunks:
+        return {
+            "success": False,
+            "error": "No relevant document chunks found to answer this question.",
+            "answer": "Information not found in the uploaded documents."
+        }
+
+    lang = language.lower() if language in LANGUAGE_CONFIG else 'en'
+    lang_info = LANGUAGE_CONFIG[lang]
+
+    ctx_blocks = []
+    citations = []
+    seen_cites = set()
+    for idx, c in enumerate(retrieved_chunks, start=1):
+        ctx_blocks.append(f"[Chunk {idx} | Document: {c['filename']} | Page: {c['page']}]\n{c['text']}")
+        cite_key = f"{c['filename']}_{c['page']}"
+        if cite_key not in seen_cites:
+            seen_cites.add(cite_key)
+            citations.append({"document": c['filename'], "page": c['page']})
+    formatted_context = "\n\n".join(ctx_blocks)
+
+    api_key = get_active_gemini_api_key()
+    if not api_key:
+        return {
+            "success": False,
+            "error": "Gemini API key is not configured.",
+            "answer": "Please configure your GEMINI_API_KEY in .env."
+        }
+
+    if marks_int == 2:
+        format_directive = (
+            "Answer format: 2-MARK EXAM ANSWER\n"
+            "- Direct, concise 2 to 4 sentences.\n"
+            "- Clear formal definition.\n"
+            "- Exactly 2 essential bullet points or key facts.\n"
+            "- Zero unnecessary filler."
+        )
+    elif marks_int == 5:
+        format_directive = (
+            "Answer format: 5-MARK EXAM ANSWER\n"
+            "- Clear introduction & formal definition.\n"
+            "- 3 to 4 numbered points or comparison table with bold headings.\n"
+            "- A practical example or code snippet where supported by the text.\n"
+            "- Structured point-wise presentation suitable for medium exam length."
+        )
+    else:  # 10 marks
+        format_directive = (
+            "Answer format: 10-MARK DETAILED EXAM ANSWER\n"
+            "- **1. Introduction**: Academic definition and context.\n"
+            "- **2. Detailed Principles & Working**: Logical sections with numbered headings.\n"
+            "- **3. Architectural Flowchart / Diagram**: Include Mermaid diagram code if concept is visualizable.\n"
+            "- **4. Advantages, Limitations & Applications**: Concrete bulleted items.\n"
+            "- **5. Conclusion**: Concise wrap-up.\n"
+            "- **Marking Scheme**: A clear point-wise breakdown of marks allocation."
+        )
+
+    prompt = (
+        "You are an expert University Examination Evaluator and Academic Professor powered by DocuMind AI.\n"
+        "Use ONLY the provided context chunks below to write a high-scoring, academically rigorous exam model answer.\n\n"
+        f"{format_directive}\n\n"
+        f"Language instruction: {lang_info['instruction']}\n"
+        "Strict Grounding: Use ONLY facts, code, definitions, and numbers from the context. Do NOT hallucinate.\n\n"
+        f"--- CONTEXT START ---\n{formatted_context}\n--- CONTEXT END ---\n\n"
+        f"EXAM QUESTION ({marks_int} Marks): {question}\n\n"
+        "OUTPUT SCHEMA:\n"
+        "Respond strictly with valid JSON:\n"
+        "{\n"
+        '  "answer": "Complete Markdown formatted answer tailored to marks.",\n'
+        '  "diagram": null | {"type": "mermaid", "code": "graph TD\\n...", "title": "Diagram Title"}\n'
+        "}"
+    )
+
+    configured_model = getattr(settings, 'GEMINI_MODEL', 'gemini-3.5-flash-lite')
+    candidate_models = [configured_model, 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-flash-latest']
+    seen = set()
+    candidate_models = [m for m in candidate_models if not (m in seen or seen.add(m))]
+
+    raw_response = None
+    last_err = None
+
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        for m in candidate_models:
+            try:
+                resp = client.models.generate_content(model=m, contents=prompt)
+                if hasattr(resp, 'text') and resp.text:
+                    raw_response = resp.text.strip()
+                    break
+            except Exception as e:
+                last_err = e
+    except Exception as e:
+        last_err = e
+
+    if not raw_response:
+        return {
+            "success": False,
+            "error": f"API error: {str(last_err)}",
+            "answer": "Failed to generate answer."
+        }
+
+    answer_text, visual_data = parse_llm_visual_response(raw_response)
+    return {
+        "success": True,
+        "answer": answer_text,
+        "diagram": visual_data,
+        "citations": citations,
+        "marks": marks_int
+    }
+

@@ -9,6 +9,8 @@ from .rag_pipeline import (
     query_rag_pipeline,
     get_total_indexed_vectors,
     get_active_gemini_api_key,
+    generate_exam_questions,
+    generate_exam_answer_for_question,
 )
 
 __all__ = [
@@ -22,4 +24,6 @@ __all__ = [
     'query_rag_pipeline',
     'get_total_indexed_vectors',
     'get_active_gemini_api_key',
+    'generate_exam_questions',
+    'generate_exam_answer_for_question',
 ]

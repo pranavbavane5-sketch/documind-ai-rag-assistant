@@ -176,3 +176,141 @@ class DjangoViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse('home'))
 
+
+class ExamModeTests(TestCase):
+    """Tests for Exam Preparation Mode question and answer generation."""
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_exam_generate_questions_no_docs(self):
+        response = self.client.post(
+            reverse('api_exam_generate_questions'),
+            data='{"marks": "all"}',
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertFalse(data['success'])
+        self.assertIn("at least one document", data['error'].lower())
+
+    def test_exam_generate_answer_empty_question(self):
+        response = self.client.post(
+            reverse('api_exam_generate_answer'),
+            data='{"question": "  ", "marks": 5}',
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertFalse(data['success'])
+        self.assertIn("valid question", data['error'].lower())
+
+    def test_exam_generate_answer_no_docs(self):
+        response = self.client.post(
+            reverse('api_exam_generate_answer'),
+            data='{"question": "Define Overfitting", "marks": 2}',
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertFalse(data['success'])
+        self.assertIn("at least one document", data['error'].lower())
+
+    from unittest.mock import patch
+
+    @patch('documents.views.generate_exam_questions')
+    def test_exam_generate_questions_with_docs(self, mock_gen):
+        # Create a mock processed document
+        Document.objects.create(
+            original_name="syllabus.pdf",
+            file="documents/syllabus.pdf",
+            file_type=".pdf",
+            file_size=1024,
+            is_processed=True,
+            chunk_count=5
+        )
+
+        mock_gen.return_value = {
+            'success': True,
+            'marks': '5',
+            'questions': [
+                {
+                    'question': 'Differentiate between Supervised and Unsupervised Learning.',
+                    'marks': 5,
+                    'category': 'Differentiate Between',
+                    'answer': 'Supervised learning uses labelled data whereas unsupervised uses unlabelled.',
+                    'citations': [{'filename': 'syllabus.pdf', 'page': 2}],
+                    'marking_scheme': ['Definition & comparison (3 Marks)', 'Examples (2 Marks)']
+                }
+            ],
+            'source_document': 'syllabus.pdf',
+            'language': 'en'
+        }
+
+        response = self.client.post(
+            reverse('api_exam_generate_questions'),
+            data='{"marks": 5}',
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(len(data['questions']), 1)
+        self.assertEqual(data['questions'][0]['marks'], 5)
+        self.assertEqual(data['source_document'], 'syllabus.pdf')
+
+    @patch('documents.views.generate_exam_answer_for_question')
+    def test_exam_generate_answer_for_marks_tiers(self, mock_gen_answer):
+        Document.objects.create(
+            original_name="ai_notes.txt",
+            file="documents/ai_notes.txt",
+            file_type=".txt",
+            file_size=512,
+            is_processed=True,
+            chunk_count=3
+        )
+
+        # Test 2 Marks
+        mock_gen_answer.return_value = {
+            'success': True,
+            'question': 'What is Backpropagation?',
+            'marks': 2,
+            'answer': 'Backpropagation is an algorithm used in neural networks to calculate gradients of loss function with respect to weights.',
+            'citations': [{'filename': 'ai_notes.txt', 'page': 1}],
+            'marking_scheme': ['Definition (1 Mark)', 'Core objective (1 Mark)']
+        }
+
+        res_2m = self.client.post(
+            reverse('api_exam_generate_answer'),
+            data='{"question": "What is Backpropagation?", "marks": 2}',
+            content_type="application/json"
+        )
+        self.assertEqual(res_2m.status_code, 200)
+        data_2m = res_2m.json()
+        self.assertTrue(data_2m['success'])
+        self.assertEqual(data_2m['marks'], 2)
+        self.assertIn("Backpropagation is an algorithm", data_2m['answer'])
+
+        # Test 10 Marks with Diagram
+        mock_gen_answer.return_value = {
+            'success': True,
+            'question': 'Explain the Architecture and Working of Convolutional Neural Networks.',
+            'marks': 10,
+            'answer': '### 1. Introduction\nConvolutional Neural Networks (CNNs) are specialized deep architectures...',
+            'diagram': 'graph TD\nInput --> Conv[Convolution Layer] --> Pool[Pooling Layer] --> FC[Fully Connected] --> Output',
+            'citations': [{'filename': 'ai_notes.txt', 'page': 3}],
+            'marking_scheme': ['Introduction & Principle (2M)', 'Architecture Breakdown (4M)', 'Diagram & Working (2M)', 'Conclusion (2M)']
+        }
+
+        res_10m = self.client.post(
+            reverse('api_exam_generate_answer'),
+            data='{"question": "Explain the Architecture and Working of Convolutional Neural Networks.", "marks": 10}',
+            content_type="application/json"
+        )
+        self.assertEqual(res_10m.status_code, 200)
+        data_10m = res_10m.json()
+        self.assertTrue(data_10m['success'])
+        self.assertEqual(data_10m['marks'], 10)
+        self.assertIn("graph TD", data_10m['diagram'])
+
+

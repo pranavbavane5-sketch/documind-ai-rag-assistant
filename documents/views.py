@@ -16,6 +16,8 @@ from .services import (
     query_rag_pipeline,
     get_total_indexed_vectors,
     get_active_gemini_api_key,
+    generate_exam_questions,
+    generate_exam_answer_for_question,
 )
 
 
@@ -290,3 +292,99 @@ def ask_question(request):
         'model_name': getattr(settings, 'GEMINI_MODEL', 'gemini-1.5-flash'),
         'api_key_present': bool(getattr(settings, 'GEMINI_API_KEY', '').strip()),
     })
+
+
+@csrf_exempt
+@require_POST
+def api_exam_generate_questions(request):
+    """
+    Asynchronous endpoint to generate university exam-oriented questions
+    and structured model answers strictly from uploaded document material.
+    Supports marks filters: 'all', '2', '5', '10'.
+    """
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        marks = data.get('marks', 'all')
+        doc_id = data.get('document_id')
+        language = data.get('language', 'en').strip().lower()
+        exclude = data.get('exclude_questions', [])
+        client_key = (data.get('api_key') or '').strip()
+    except Exception:
+        marks = request.POST.get('marks', 'all')
+        doc_id = request.POST.get('document_id')
+        language = request.POST.get('language', 'en').strip().lower()
+        exclude = []
+        client_key = request.POST.get('api_key', '').strip()
+
+    if client_key and client_key != 'YOUR_GEMINI_API_KEY':
+        settings.GEMINI_API_KEY = client_key
+        os.environ['GEMINI_API_KEY'] = client_key
+
+    # Check if processed documents exist
+    if not Document.objects.filter(is_processed=True).exists():
+        return JsonResponse({
+            'success': False,
+            'error': 'Please upload and index at least one document before generating exam questions.'
+        }, status=400)
+
+    # If document_id was provided, verify it exists and is processed
+    if doc_id:
+        try:
+            doc_id = int(doc_id)
+            if not Document.objects.filter(id=doc_id, is_processed=True).exists():
+                return JsonResponse({'success': False, 'error': 'Selected document is not indexed.'}, status=400)
+        except (ValueError, TypeError):
+            doc_id = None
+
+    result = generate_exam_questions(
+        marks=marks,
+        document_id=doc_id,
+        language=language,
+        exclude_questions=exclude
+    )
+    return JsonResponse(result, status=200 if result.get('success') else 400)
+
+
+@csrf_exempt
+@require_POST
+def api_exam_generate_answer(request):
+    """
+    Generates an individual exam-ready model answer strictly tailored to the specified marks.
+    """
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        question = data.get('question', '').strip()
+        marks = data.get('marks', 5)
+        doc_id = data.get('document_id')
+        language = data.get('language', 'en').strip().lower()
+        client_key = (data.get('api_key') or '').strip()
+    except Exception:
+        question = request.POST.get('question', '').strip()
+        marks = request.POST.get('marks', 5)
+        doc_id = request.POST.get('document_id')
+        language = request.POST.get('language', 'en').strip().lower()
+        client_key = request.POST.get('api_key', '').strip()
+
+    if client_key and client_key != 'YOUR_GEMINI_API_KEY':
+        settings.GEMINI_API_KEY = client_key
+        os.environ['GEMINI_API_KEY'] = client_key
+
+    if not question:
+        return JsonResponse({'success': False, 'error': 'Please provide a valid question.'}, status=400)
+
+    if not Document.objects.filter(is_processed=True).exists():
+        return JsonResponse({'success': False, 'error': 'Please upload at least one document first.'}, status=400)
+
+    if doc_id:
+        try:
+            doc_id = int(doc_id)
+        except (ValueError, TypeError):
+            doc_id = None
+
+    result = generate_exam_answer_for_question(
+        question=question,
+        marks=marks,
+        document_id=doc_id,
+        language=language
+    )
+    return JsonResponse(result, status=200 if result.get('success') else 400)
