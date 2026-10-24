@@ -8,9 +8,11 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.conf import settings
+from allauth.account.views import LoginView
 
 from .models import Document, UserProfile, AdminAuditLog, UserQueryHistory
 from .services import (
@@ -56,20 +58,27 @@ def admin_required(view_func):
     return _wrapped_view
 
 
-@ensure_csrf_cookie
-def home(request):
+def root_view(request, *args, **kwargs):
     """
-    Renders the modern Antigravity Document Intelligence Assistant dashboard.
-    Enforces document ownership: logged-in students see only their own documents.
+    Root application entry point (URL: '/').
+    - If user is authenticated: redirects directly to the DocuMind AI dashboard ('/dashboard/').
+    - If user is unauthenticated: renders the styled DocuMind AI Sign In page.
     """
     if request.user.is_authenticated:
-        documents = Document.objects.filter(user=request.user, is_processed=True)
-        user_vectors = sum(d.chunk_count for d in documents)
-    else:
-        # Unauthenticated guests see repository interface with prompt to log in
-        documents = Document.objects.filter(user__isnull=True, is_processed=True)
-        user_vectors = 0
+        return redirect('dashboard')
+    return LoginView.as_view()(request, *args, **kwargs)
 
+
+@login_required
+@ensure_csrf_cookie
+def dashboard_view(request):
+    """
+    Renders the modern DocuMind AI Document Intelligence Assistant dashboard.
+    Protected view: only authenticated students/admins can access.
+    Enforces document ownership: logged-in students see strictly their own documents.
+    """
+    documents = Document.objects.filter(user=request.user, is_processed=True)
+    user_vectors = sum(d.chunk_count for d in documents)
     total_vectors = get_total_indexed_vectors()
     model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-3.5-flash-lite')
     api_key_present = bool(get_active_gemini_api_key())
@@ -81,6 +90,20 @@ def home(request):
         'model_name': model_name,
         'api_key_present': api_key_present,
     })
+
+
+# Backward-compatibility alias so existing references continue to work
+home = dashboard_view
+
+
+def logout_view(request):
+    """
+    Ends the user session and redirects to the root Login page ('/').
+    """
+    if request.user.is_authenticated:
+        auth_logout(request)
+        messages.info(request, "You have been logged out successfully.")
+    return redirect('/')
 
 
 # -----------------------------------------------------------------------------
@@ -435,12 +458,12 @@ def upload_document(request):
     uploaded_file = request.FILES.get('document')
     if not uploaded_file:
         messages.error(request, "No file selected.")
-        return redirect('home')
+        return redirect('dashboard')
 
     is_valid, err_msg = validate_file(uploaded_file)
     if not is_valid:
         messages.error(request, err_msg)
-        return redirect('home')
+        return redirect('dashboard')
 
     ext = Path(uploaded_file.name).suffix.lower()
     doc = Document.objects.create(
@@ -459,7 +482,7 @@ def upload_document(request):
         doc.save()
         messages.error(request, f"Error processing file: {str(e)}")
 
-    return redirect('home')
+    return redirect('dashboard')
 
 
 @require_POST
@@ -475,13 +498,13 @@ def delete_document(request, document_id):
     )
     if doc.user_id != request.user.id and not is_admin:
         messages.error(request, "Access denied: You do not own this document.")
-        return redirect('home')
+        return redirect('dashboard')
 
     name = doc.original_name
     delete_document_from_index(doc)
     doc.delete()
     messages.info(request, f"Deleted document '{name}'.")
-    return redirect('home')
+    return redirect('dashboard')
 
 
 @require_POST
@@ -492,12 +515,12 @@ def ask_question(request):
     query = request.POST.get('question', '').strip()
     if not query:
         messages.warning(request, "Please enter a question.")
-        return redirect('home')
+        return redirect('dashboard')
 
     user_docs = Document.objects.filter(user=request.user, is_processed=True)
     if not user_docs.exists():
         messages.warning(request, "Please upload at least one document before asking questions.")
-        return redirect('home')
+        return redirect('dashboard')
 
     user_doc_ids = list(user_docs.values_list('id', flat=True))
     result = query_rag_pipeline(

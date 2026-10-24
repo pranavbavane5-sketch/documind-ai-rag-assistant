@@ -168,17 +168,17 @@ class DjangoViewTests(TestCase):
     def test_upload_missing_file_redirects_with_error(self):
         response = self.client.post(reverse('upload_document'), {})
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('home'))
+        self.assertRedirects(response, reverse('dashboard'))
 
     def test_ask_question_empty_redirects(self):
         response = self.client.post(reverse('ask_question'), {'question': '   '})
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('home'))
+        self.assertRedirects(response, reverse('dashboard'))
 
     def test_ask_question_no_documents_warns(self):
         response = self.client.post(reverse('ask_question'), {'question': 'What is AI?'})
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('home'))
+        self.assertRedirects(response, reverse('dashboard'))
 
 
 class ExamModeTests(TestCase):
@@ -323,12 +323,54 @@ class UnauthenticatedSecurityTests(TestCase):
     def test_unauthenticated_admin_dashboard_redirects_to_login(self):
         response = self.client.get(reverse('admin_dashboard'))
         self.assertEqual(response.status_code, 302)
-        self.assertIn('/accounts/login/', response.url)
+        self.assertTrue(response.url.startswith('/?next=') or '/login' in response.url)
 
     def test_unauthenticated_profile_redirects_to_login(self):
         response = self.client.get(reverse('profile_view'))
         self.assertEqual(response.status_code, 302)
-        self.assertIn('/accounts/login/', response.url)
+        self.assertTrue(response.url.startswith('/?next=') or '/login' in response.url)
+
+    def test_root_unauthenticated_displays_signin_page(self):
+        """Root URL ('/') must directly display the Sign In page for unauthenticated visitors."""
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sign In")
+        self.assertContains(response, "Continue with Google")
+        self.assertContains(response, "Email or Username")
+        self.assertContains(response, "Create free account")
+
+    def test_root_authenticated_redirects_to_dashboard(self):
+        """Authenticated users visiting root URL ('/') are redirected directly to dashboard."""
+        user = User.objects.create_user(username='authed_student', password='password123')
+        self.client.force_login(user)
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('dashboard'))
+
+    def test_dashboard_unauthenticated_redirects_to_root(self):
+        """Unauthenticated access to '/dashboard/' redirects to root login page with next param."""
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith('/?next=') or '/login' in response.url)
+
+    def test_dashboard_authenticated_loads_successfully(self):
+        """Authenticated access to '/dashboard/' renders the DocuMind AI dashboard."""
+        user = User.objects.create_user(username='dash_student', password='password123')
+        self.client.force_login(user)
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "DocuMind AI")
+        self.assertContains(response, "dash_student")
+
+    def test_logout_view_clears_session_and_redirects_to_root(self):
+        """Logging out ends the user session and returns the user to the root Login page."""
+        user = User.objects.create_user(username='logout_student', password='password123')
+        self.client.force_login(user)
+        response = self.client.get(reverse('logout'))
+        self.assertRedirects(response, '/')
+        # Verify subsequent dashboard request requires authentication
+        dash_response = self.client.get(reverse('dashboard'))
+        self.assertEqual(dash_response.status_code, 302)
 
 
 class DocumentOwnershipIsolationTests(TestCase):

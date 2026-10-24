@@ -2,8 +2,15 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Main Antigravity UI
-    path('', views.home, name='home'),
+    # Application Entry Point: Root displays Sign In page for guests, or redirects to dashboard
+    path('', views.root_view, name='root'),
+
+    # Main DocuMind AI Dashboard (Protected)
+    path('dashboard/', views.dashboard_view, name='dashboard'),
+    path('home/', views.dashboard_view, name='home'),
+
+    # User Authentication Session Termination
+    path('logout/', views.logout_view, name='logout'),
 
     # User Profile
     path('profile/', views.profile_view, name='profile_view'),
