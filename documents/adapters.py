@@ -56,7 +56,23 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
 
 class CustomAccountAdapter(DefaultAccountAdapter):
     """
-    Standard account adapter for username/password signups.
+    Standard account adapter for username/password signups with role-aware redirection.
     """
     def is_open_for_signup(self, request):
         return True
+
+    def get_login_redirect_url(self, request):
+        """
+        Redirects staff/administrators to the Admin Dashboard ('/admin-dashboard/')
+        and students to the Student Workspace ('/dashboard/').
+        """
+        user = getattr(request, 'user', None)
+        if user and user.is_authenticated:
+            is_admin = (
+                user.is_staff or 
+                user.is_superuser or 
+                getattr(getattr(user, 'profile', None), 'is_admin', False)
+            )
+            if is_admin:
+                return '/admin-dashboard/'
+        return '/dashboard/'

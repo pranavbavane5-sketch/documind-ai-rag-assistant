@@ -1,5 +1,29 @@
 from django.contrib import admin
+from django.contrib.auth.models import User
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import Document, UserProfile, AdminAuditLog, UserQueryHistory
+
+
+class UserProfileInline(admin.StackedInline):
+    model = UserProfile
+    can_delete = False
+    verbose_name_plural = 'DocuMind Role Profile'
+    fields = ('role', 'avatar_url')
+
+
+admin.site.unregister(User)
+
+
+@admin.register(User)
+class CustomUserAdmin(BaseUserAdmin):
+    inlines = (UserProfileInline,)
+    list_display = ('username', 'email', 'first_name', 'last_name', 'get_documind_role', 'is_active', 'is_staff')
+    list_filter = ('is_staff', 'is_active', 'profile__role', 'date_joined')
+
+    def get_documind_role(self, obj):
+        profile = getattr(obj, 'profile', None)
+        return profile.get_role_display() if profile else "Student"
+    get_documind_role.short_description = "Role"
 
 
 @admin.register(UserProfile)

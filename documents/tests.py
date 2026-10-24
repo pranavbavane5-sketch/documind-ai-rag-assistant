@@ -478,6 +478,61 @@ class RoleAndAdminDashboardTests(TestCase):
         self.admin.refresh_from_db()
         self.assertTrue(self.admin.is_active)
 
+    def test_admin_can_toggle_user_role(self):
+        self.client.force_login(self.admin)
+        self.assertEqual(self.student.profile.role, UserProfile.ROLE_STUDENT)
+
+        # Promote student to admin
+        response = self.client.post(reverse('admin_toggle_user_role', args=[self.student.id]))
+        self.assertEqual(response.status_code, 302)
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.profile.role, UserProfile.ROLE_ADMIN)
+        self.assertTrue(self.student.is_staff)
+
+        # Audit log verification
+        log = AdminAuditLog.objects.filter(target_user=self.student, action='ROLE_PROMOTED').first()
+        self.assertIsNotNone(log)
+
+    def test_admin_can_delete_document_globally(self):
+        self.client.force_login(self.admin)
+        doc = Document.objects.create(
+            user=self.student,
+            original_name="student_paper.pdf",
+            file="documents/student_paper.pdf",
+            file_type=".pdf",
+            file_size=1024,
+            is_processed=True,
+            chunk_count=2
+        )
+        response = self.client.post(reverse('admin_delete_document', args=[doc.id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Document.objects.filter(id=doc.id).exists())
+
+        # Audit log verification
+        log = AdminAuditLog.objects.filter(action='DOCUMENT_DELETED').first()
+        self.assertIsNotNone(log)
+
+    def test_student_forbidden_from_admin_delete_document(self):
+        self.client.force_login(self.student)
+        doc = Document.objects.create(
+            user=self.admin,
+            original_name="admin_policy.pdf",
+            file="documents/admin_policy.pdf",
+            file_type=".pdf",
+            file_size=1024,
+            is_processed=True,
+            chunk_count=2
+        )
+        response = self.client.post(reverse('admin_delete_document', args=[doc.id]))
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Document.objects.filter(id=doc.id).exists())
+
+    def test_admin_root_redirects_to_admin_dashboard(self):
+        self.client.force_login(self.admin)
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('admin_dashboard'))
+
 
 class GoogleOAuthAdapterSecurityTests(TestCase):
     """Tests least-privilege security guarantees for Google OAuth registrations."""

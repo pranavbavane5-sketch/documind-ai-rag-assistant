@@ -57,6 +57,27 @@
             line-height: 1.2;
             color: #ffffff;
         }
+        .dm-nav-tab-btn {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+            border-radius: 0.75rem;
+            padding: 0.65rem 1.25rem;
+            font-weight: 600;
+            font-size: 0.88rem;
+            transition: all 0.2s ease;
+        }
+        .dm-nav-tab-btn:hover {
+            color: #ffffff;
+            border-color: rgba(99, 102, 241, 0.3);
+            background: rgba(30, 41, 59, 0.7);
+        }
+        .dm-nav-tab-btn.active {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(59, 130, 246, 0.15)) !important;
+            border-color: #6366f1 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
         .dm-table-card {
             background: rgba(15, 23, 42, 0.7);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -116,6 +137,12 @@
             border-radius: 9999px;
             font-weight: 600;
         }
+        .dm-status-item {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.85rem;
+            padding: 1.25rem;
+        }
     </style>
 </head>
 <body class="documind-app dm-admin-layout">
@@ -125,7 +152,7 @@
         <div class="d-flex justify-content-between align-items-center">
             
             <div class="d-flex align-items-center gap-3">
-                <a href="/" class="d-flex align-items-center gap-2 text-decoration-none">
+                <a href="{% url 'dashboard' %}" class="d-flex align-items-center gap-2 text-decoration-none">
                     <div class="dm-brand-symbol" style="width: 34px; height: 34px;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -141,7 +168,7 @@
             </div>
 
             <div class="d-flex align-items-center gap-2">
-                <a href="/" class="btn btn-sm btn-outline-secondary text-light px-3" title="Return to Student Workspace">
+                <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-secondary text-light px-3" title="Return to Student Workspace">
                     <i class="bi bi-house-door me-1"></i> <span class="d-none d-sm-inline">Student Studio</span>
                 </a>
                 <a href="/admin/" target="_blank" class="btn btn-sm btn-outline-primary px-3" title="Open Standard Django Admin">
@@ -176,10 +203,10 @@
         <!-- Metric Stat Cards -->
         <div class="row g-3 mb-4">
             
-            <!-- 1. Total Registered Users -->
+            <!-- 1. Total Registered Users (with Active / Inactive breakdown) -->
             <div class="col-12 col-sm-6 col-xl-3">
                 <div class="dm-metric-card">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
                             <div class="text-secondary small fw-semibold text-uppercase">Total Users</div>
                             <div class="dm-metric-value mt-1">{{ total_users }}</div>
@@ -188,7 +215,16 @@
                             <i class="bi bi-people-fill"></i>
                         </div>
                     </div>
-                    <div class="d-flex gap-3 small text-secondary">
+                    <div class="d-flex flex-wrap gap-2 small text-secondary align-items-center">
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2 py-0">
+                            <i class="bi bi-check-circle me-1"></i>{{ active_users }} Active
+                        </span>
+                        {% if inactive_users > 0 %}
+                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 px-2 py-0">
+                                <i class="bi bi-slash-circle me-1"></i>{{ inactive_users }} Inactive
+                            </span>
+                        {% endif %}
+                        <span class="text-secondary">&bull;</span>
                         <span><strong class="text-light">{{ student_count }}</strong> Students</span>
                         <span>&bull;</span>
                         <span><strong class="text-warning">{{ admin_count }}</strong> Admins</span>
@@ -199,7 +235,7 @@
             <!-- 2. Total Processed Documents -->
             <div class="col-12 col-sm-6 col-xl-3">
                 <div class="dm-metric-card">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
                             <div class="text-secondary small fw-semibold text-uppercase">Documents Indexed</div>
                             <div class="dm-metric-value mt-1">{{ total_documents }}</div>
@@ -209,7 +245,7 @@
                         </div>
                     </div>
                     <div class="small text-secondary">
-                        Storage: <strong class="text-light">{{ total_storage_display }}</strong>
+                        Total Disk Storage: <strong class="text-light">{{ total_storage_display }}</strong>
                     </div>
                 </div>
             </div>
@@ -217,7 +253,7 @@
             <!-- 3. Vector Embeddings (ChromaDB) -->
             <div class="col-12 col-sm-6 col-xl-3">
                 <div class="dm-metric-card">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
                             <div class="text-secondary small fw-semibold text-uppercase">ChromaDB Vectors</div>
                             <div class="dm-metric-value mt-1">{{ total_vectors }}</div>
@@ -227,7 +263,7 @@
                         </div>
                     </div>
                     <div class="small text-secondary">
-                        Model: <strong class="text-light">{{ embedding_model }}</strong>
+                        Embedding: <strong class="text-light">{{ embedding_model }}</strong>
                     </div>
                 </div>
             </div>
@@ -235,7 +271,7 @@
             <!-- 4. Query Activities / Operations -->
             <div class="col-12 col-sm-6 col-xl-3">
                 <div class="dm-metric-card">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
                             <div class="text-secondary small fw-semibold text-uppercase">Total Inquiries</div>
                             <div class="dm-metric-value mt-1">{{ total_queries }}</div>
@@ -245,28 +281,72 @@
                         </div>
                     </div>
                     <div class="small text-secondary">
-                        LLM: <strong class="text-light">{{ gemini_model }}</strong>
+                        Generative LLM: <strong class="text-light">{{ gemini_model }}</strong>
                     </div>
                 </div>
             </div>
 
         </div>
 
-        <!-- User Accounts Management Section -->
-        <div class="row g-4 mb-4">
-            <div class="col-12">
+        <!-- Navigation Tabs: User Management, Document Management, System Status, Audit Trail -->
+        <ul class="nav nav-pills dm-admin-nav-tabs mb-4 gap-2" id="adminTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active dm-nav-tab-btn" id="users-tab" data-bs-toggle="pill" data-bs-target="#tab-users" type="button" role="tab" aria-selected="true">
+                    <i class="bi bi-people-fill me-2 text-primary"></i>User Management
+                    <span class="badge bg-secondary bg-opacity-50 text-light ms-1">{{ total_users }}</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link dm-nav-tab-btn" id="docs-tab" data-bs-toggle="pill" data-bs-target="#tab-docs" type="button" role="tab" aria-selected="false">
+                    <i class="bi bi-file-earmark-text-fill me-2 text-success"></i>Document Management
+                    <span class="badge bg-secondary bg-opacity-50 text-light ms-1">{{ total_documents }}</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link dm-nav-tab-btn" id="status-tab" data-bs-toggle="pill" data-bs-target="#tab-status" type="button" role="tab" aria-selected="false">
+                    <i class="bi bi-hdd-network-fill me-2 text-info"></i>System & AI Status
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link dm-nav-tab-btn" id="audit-tab" data-bs-toggle="pill" data-bs-target="#tab-audit" type="button" role="tab" aria-selected="false">
+                    <i class="bi bi-shield-shaded me-2 text-warning"></i>Audit Trail
+                    <span class="badge bg-secondary bg-opacity-50 text-light ms-1">{{ audit_logs|length }}</span>
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="adminTabsContent">
+
+            <!-- TAB 1: User Management -->
+            <div class="tab-pane fade show active" id="tab-users" role="tabpanel" aria-labelledby="users-tab">
                 <div class="dm-table-card">
                     
-                    <div class="p-3 px-4 d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10">
+                    <div class="p-3 px-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 border-bottom border-white border-opacity-10">
                         <div>
                             <h2 class="h5 text-light fw-bold mb-0">
                                 <i class="bi bi-person-gear text-primary me-2"></i> User Directory & Access Control
                             </h2>
                             <p class="text-secondary small mb-0">Enforce role-based access, manage active states, and monitor document volume</p>
                         </div>
-                        <span class="badge bg-secondary bg-opacity-25 text-light px-3 py-1 rounded-pill small">
-                            {{ total_users }} Accounts
-                        </span>
+                        <div class="d-flex align-items-center gap-2">
+                            <form method="get" action="#tab-users" class="d-flex align-items-center">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" name="user_q" value="{{ user_search }}" class="form-control bg-dark border-secondary text-light" placeholder="Search user or email..." style="min-width: 200px;">
+                                    <button class="btn btn-outline-secondary text-light" type="submit">
+                                        <i class="bi bi-search"></i>
+                                    </button>
+                                    {% if user_search %}
+                                        <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-danger" title="Clear search">
+                                            <i class="bi bi-x-lg"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </form>
+                            <span class="badge bg-secondary bg-opacity-25 text-light px-3 py-2 rounded-pill small">
+                                {{ users|length }} Results
+                            </span>
+                        </div>
                     </div>
 
                     <div class="table-responsive">
@@ -333,7 +413,7 @@
                                                     <form method="post" action="{% url 'admin_toggle_user_status' u.id %}" class="d-inline">
                                                         {% csrf_token %}
                                                         {% if u.is_active %}
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1" title="Deactivate user account">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1" title="Deactivate user account" onclick="return confirm('Are you sure you want to deactivate {{ u.username }}?');">
                                                                 <i class="bi bi-person-x"></i> Deactivate
                                                             </button>
                                                         {% else %}
@@ -347,11 +427,11 @@
                                                     <form method="post" action="{% url 'admin_toggle_user_role' u.id %}" class="d-inline">
                                                         {% csrf_token %}
                                                         {% if u.profile.role == 'admin' or u.is_staff %}
-                                                            <button type="submit" class="btn btn-sm btn-outline-warning px-2 py-1" title="Demote to student">
+                                                            <button type="submit" class="btn btn-sm btn-outline-warning px-2 py-1" title="Demote to student" onclick="return confirm('Demote {{ u.username }} to student role?');">
                                                                 <i class="bi bi-arrow-down-circle"></i> Demote
                                                             </button>
                                                         {% else %}
-                                                            <button type="submit" class="btn btn-sm btn-outline-primary px-2 py-1" title="Promote to administrator">
+                                                            <button type="submit" class="btn btn-sm btn-outline-primary px-2 py-1" title="Promote to administrator" onclick="return confirm('Grant administrator privileges to {{ u.username }}?');">
                                                                 <i class="bi bi-shield-plus"></i> Make Admin
                                                             </button>
                                                         {% endif %}
@@ -370,7 +450,7 @@
                                     </tr>
                                 {% empty %}
                                     <tr>
-                                        <td colspan="6" class="text-center text-secondary py-4">No users registered yet.</td>
+                                        <td colspan="6" class="text-center text-secondary py-4">No matching users found.</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -379,11 +459,182 @@
 
                 </div>
             </div>
-        </div>
 
-        <!-- Security & Administrative Audit Log Section -->
-        <div class="row g-4">
-            <div class="col-12">
+            <!-- TAB 2: Document Management -->
+            <div class="tab-pane fade" id="tab-docs" role="tabpanel" aria-labelledby="docs-tab">
+                <div class="dm-table-card">
+                    
+                    <div class="p-3 px-4 d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10">
+                        <div>
+                            <h2 class="h5 text-light fw-bold mb-0">
+                                <i class="bi bi-folder2-open text-success me-2"></i> Global Document Repository Management
+                            </h2>
+                            <p class="text-secondary small mb-0">Inspect all uploaded documents, ownership, vector chunk volume, and perform administrative cleanup</p>
+                        </div>
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-3 py-1 rounded-pill small">
+                            {{ total_documents }} Total Documents
+                        </span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table dm-admin-table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Document Name</th>
+                                    <th>Owner</th>
+                                    <th>Format</th>
+                                    <th>File Size</th>
+                                    <th>Chunks Indexed</th>
+                                    <th>Uploaded</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in all_documents %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi {% if doc.file_type == '.pdf' %}bi-file-earmark-pdf text-danger{% else %}bi-file-earmark-text text-primary{% endif %} fs-5"></i>
+                                                <div>
+                                                    <div class="fw-semibold text-light text-truncate" style="max-width: 280px;" title="{{ doc.original_name }}">
+                                                        {{ doc.original_name }}
+                                                    </div>
+                                                    {% if not doc.is_processed %}
+                                                        <span class="badge bg-danger bg-opacity-25 text-danger small">Error</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if doc.user %}
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="text-light fw-semibold small">{{ doc.user.username }}</span>
+                                                    {% if doc.user.is_staff or doc.user.profile.role == 'admin' %}
+                                                        <span class="badge bg-warning bg-opacity-25 text-warning small" style="font-size:0.65rem;">ADMIN</span>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="text-secondary small" style="font-size:0.75rem;">{{ doc.user.email|default:"" }}</div>
+                                            {% else %}
+                                                <span class="text-secondary small">System / Legacy</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-dark border border-secondary border-opacity-25 text-light text-uppercase">
+                                                {{ doc.file_type|slice:"1:" }}
+                                            </span>
+                                        </td>
+                                        <td class="text-secondary small">
+                                            {{ doc.file_size_display }}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info bg-opacity-15 text-info border border-info border-opacity-25">
+                                                {{ doc.chunk_count }} chunks
+                                            </span>
+                                        </td>
+                                        <td class="text-secondary small">
+                                            {{ doc.uploaded_at|date:"M d, Y H:i" }}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-inline-flex gap-1">
+                                                <a href="/admin/documents/document/{{ doc.id }}/change/" target="_blank" class="btn btn-sm btn-outline-secondary px-2 py-1 text-light" title="Inspect in Django Admin">
+                                                    <i class="bi bi-box-arrow-up-right"></i>
+                                                </a>
+                                                <form method="post" action="{% url 'admin_delete_document' doc.id %}" class="d-inline" onsubmit="return confirm('Delete document \'{{ doc.original_name }}\' from the system and vector store?');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1" title="Delete document">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-secondary py-4">No documents uploaded yet.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TAB 3: System Status -->
+            <div class="tab-pane fade" id="tab-status" role="tabpanel" aria-labelledby="status-tab">
+                <div class="dm-table-card p-4">
+                    
+                    <div class="mb-4">
+                        <h2 class="h5 text-light fw-bold mb-1">
+                            <i class="bi bi-hdd-network text-info me-2"></i> System Diagnostics & Model Infrastructure
+                        </h2>
+                        <p class="text-secondary small mb-0">Real-time parameters, vector storage status, and security architecture</p>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-6">
+                            <div class="dm-status-item">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="bi bi-cpu text-primary fs-5"></i>
+                                    <span class="fw-bold text-light">Dense Vector Store (ChromaDB)</span>
+                                </div>
+                                <div class="small text-secondary mb-1">Total Indexed Chunks: <strong class="text-light">{{ total_vectors }} vectors</strong></div>
+                                <div class="small text-secondary mb-1">Embedding Model: <strong class="text-info">{{ embedding_model }}</strong></div>
+                                <div class="small text-secondary">Multi-Tenant Scoping: <span class="badge bg-success bg-opacity-25 text-success">STRICT USER ID ISOLATION</span></div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="dm-status-item">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="bi bi-stars text-warning fs-5"></i>
+                                    <span class="fw-bold text-light">Generative AI Model (Google Gemini)</span>
+                                </div>
+                                <div class="small text-secondary mb-1">Active LLM: <strong class="text-warning">{{ gemini_model }}</strong></div>
+                                <div class="small text-secondary mb-1">RAG Context: Top 4 chunks + Provenance Citations</div>
+                                <div class="small text-secondary">Exam Prep Mode: <span class="badge bg-success bg-opacity-25 text-success">2M, 5M & 10M ACTIVE</span></div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="dm-status-item">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="bi bi-shield-check text-success fs-5"></i>
+                                    <span class="fw-bold text-light">Authentication & Security</span>
+                                </div>
+                                <div class="small text-secondary mb-1">Auth Backend: Django Built-in + Allauth 65+</div>
+                                <div class="small text-secondary mb-1">Google OAuth Least Privilege: <strong class="text-success">FORCED STUDENT ROLE</strong></div>
+                                <div class="small text-secondary">Session Protection: HTTPOnly, SameSite=Lax, Secure Cookies</div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="dm-status-item">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="bi bi-database text-info fs-5"></i>
+                                    <span class="fw-bold text-light">Database & Persistence</span>
+                                </div>
+                                <div class="small text-secondary mb-1">Engine: SQLite3 (`db.sqlite3` persistent volume)</div>
+                                <div class="small text-secondary mb-1">Total Accounts: <strong class="text-light">{{ total_users }} ({{ active_users }} active)</strong></div>
+                                <div class="small text-secondary">Audit Trail: Immutable logging for privilege & status changes</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 pt-2 border-top border-white border-opacity-10">
+                        <a href="/admin/" target="_blank" class="btn btn-outline-primary btn-sm px-3">
+                            <i class="bi bi-sliders me-1"></i> Open Full Django Admin (/admin/)
+                        </a>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm px-3 text-light">
+                            <i class="bi bi-house-door me-1"></i> Open Student AI Studio
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TAB 4: Audit Trail -->
+            <div class="tab-pane fade" id="tab-audit" role="tabpanel" aria-labelledby="audit-tab">
                 <div class="dm-table-card">
                     
                     <div class="p-3 px-4 d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10">
@@ -449,6 +700,7 @@
 
                 </div>
             </div>
+
         </div>
 
     </main>

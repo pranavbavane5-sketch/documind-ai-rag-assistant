@@ -61,10 +61,18 @@ def admin_required(view_func):
 def root_view(request, *args, **kwargs):
     """
     Root application entry point (URL: '/').
-    - If user is authenticated: redirects directly to the DocuMind AI dashboard ('/dashboard/').
+    - If user is authenticated administrator: redirects directly to '/admin-dashboard/'.
+    - If user is authenticated student: redirects directly to '/dashboard/'.
     - If user is unauthenticated: renders the styled DocuMind AI Sign In page.
     """
     if request.user.is_authenticated:
+        is_admin = (
+            request.user.is_staff or 
+            request.user.is_superuser or 
+            getattr(getattr(request.user, 'profile', None), 'is_admin', False)
+        )
+        if is_admin:
+            return redirect('admin_dashboard')
         return redirect('dashboard')
     return LoginView.as_view()(request, *args, **kwargs)
 
@@ -569,6 +577,8 @@ def admin_dashboard(request):
     Allows inspecting metrics, managing users, reviewing audit logs, and status toggles.
     """
     total_users = User.objects.count()
+    active_users = User.objects.filter(is_active=True).count()
+    inactive_users = User.objects.filter(is_active=False).count()
     student_count = UserProfile.objects.filter(role=UserProfile.ROLE_STUDENT).count()
     admin_count = UserProfile.objects.filter(role=UserProfile.ROLE_ADMIN).count()
     total_documents = Document.objects.count()
@@ -585,11 +595,25 @@ def admin_dashboard(request):
 
     total_vectors = get_total_indexed_vectors()
     total_queries = UserQueryHistory.objects.count()
-    users = User.objects.select_related('profile').prefetch_related('documents').order_by('-date_joined')
+
+    # User search / filter support
+    user_search = request.GET.get('user_q', '').strip()
+    if user_search:
+        users = User.objects.filter(
+            models.Q(username__icontains=user_search) | 
+            models.Q(email__icontains=user_search)
+        ).select_related('profile').prefetch_related('documents').order_by('-date_joined')
+    else:
+        users = User.objects.select_related('profile').prefetch_related('documents').order_by('-date_joined')
+
+    # All documents across the system for Document Management
+    all_documents = Document.objects.select_related('user').order_by('-uploaded_at')
     audit_logs = AdminAuditLog.objects.select_related('admin_user', 'target_user').order_by('-created_at')[:50]
 
     return render(request, 'documents/admin_dashboard.html', {
         'total_users': total_users,
+        'active_users': active_users,
+        'inactive_users': inactive_users,
         'student_count': student_count,
         'admin_count': admin_count,
         'total_documents': total_documents,
@@ -597,10 +621,37 @@ def admin_dashboard(request):
         'total_vectors': total_vectors,
         'total_queries': total_queries,
         'users': users,
+        'user_search': user_search,
+        'all_documents': all_documents,
         'audit_logs': audit_logs,
         'embedding_model': getattr(settings, 'EMBEDDING_MODEL_NAME', 'gemini-embedding-001'),
         'gemini_model': getattr(settings, 'GEMINI_MODEL', 'gemini-3.5-flash-lite'),
     })
+
+
+@admin_required
+@require_POST
+def admin_delete_document(request, document_id):
+    """
+    Allows authorized administrators to delete any document from the system
+    with complete audit logging.
+    """
+    doc = get_object_or_404(Document, id=document_id)
+    doc_name = doc.original_name
+    owner_name = doc.user.username if doc.user else "System"
+
+    delete_document_from_index(doc)
+    doc.delete()
+
+    AdminAuditLog.objects.create(
+        admin_user=request.user,
+        action="DOCUMENT_DELETED",
+        target_user=doc.user,
+        details=f"Document '{doc_name}' belonging to user '{owner_name}' was deleted by administrator.",
+        ip_address=get_client_ip(request)
+    )
+    messages.success(request, f"Document '{doc_name}' has been deleted successfully.")
+    return redirect('admin_dashboard')
 
 
 @admin_required

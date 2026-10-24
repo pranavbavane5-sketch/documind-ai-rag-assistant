@@ -19,6 +19,7 @@ urlpatterns = [
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('admin-dashboard/user/<int:user_id>/toggle-status/', views.admin_toggle_user_status, name='admin_toggle_user_status'),
     path('admin-dashboard/user/<int:user_id>/toggle-role/', views.admin_toggle_user_role, name='admin_toggle_user_role'),
+    path('admin-dashboard/document/<int:document_id>/delete/', views.admin_delete_document, name='admin_delete_document'),
 
     # Asynchronous REST APIs for AJAX / Fetch
     path('api/upload/', views.api_upload, name='api_upload'),
