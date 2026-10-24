@@ -399,17 +399,17 @@
                                     <!-- Suggested Prompt Chips -->
                                     <div class="dm-chips-label mb-2 fw-medium">Suggested research prompts:</div>
                                     <div class="d-flex flex-wrap justify-content-center gap-2" id="dmPromptChipsContainer">
-                                        <button class="dm-pill-chip" data-prompt="Summarize this document and highlight its core concepts and key takeaways.">
-                                            <i class="bi bi-file-earmark-text text-primary"></i> Summarize this document
+                                        <button class="dm-pill-chip" data-action="mind_map" data-prompt="Generate a structured visual mind map and concept breakdown of this document showing core topics, subtopics, and relationships.">
+                                            <i class="bi bi-diagram-3 text-primary"></i> <span>Mind Map</span>
                                         </button>
-                                        <button class="dm-pill-chip" data-prompt="What are the key findings, definitions, and concepts explained in the text?">
-                                            <i class="bi bi-lightbulb text-warning"></i> Find the key insights
+                                        <button class="dm-pill-chip" data-action="summary" data-prompt="Provide a comprehensive structured summary of this document, highlighting the core concepts, methodologies, and key takeaways.">
+                                            <i class="bi bi-file-earmark-text text-info"></i> <span>Summary</span>
                                         </button>
-                                        <button class="dm-pill-chip" data-prompt="Explain the main concepts of this document in clear, easy to understand terms.">
-                                            <i class="bi bi-compass text-info"></i> Explain the main concepts
+                                        <button class="dm-pill-chip" data-action="exam_questions" data-prompt="Generate important exam-oriented short and long questions based on this document with model answers and key marking points.">
+                                            <i class="bi bi-journal-check text-warning"></i> <span>Exam Questions</span>
                                         </button>
-                                        <button class="dm-pill-chip" data-prompt="What are the main conclusions and practical applications discussed?">
-                                            <i class="bi bi-check2-circle text-success"></i> What are the conclusions?
+                                        <button class="dm-pill-chip" data-action="viva_questions" data-prompt="Generate top viva-voce and technical oral examination questions based on this document with concise, concept-focused answers.">
+                                            <i class="bi bi-chat-left-quote text-success"></i> <span>Viva Questions</span>
                                         </button>
                                     </div>
                                 </div>
@@ -464,17 +464,17 @@
                         <!-- Quick Actions Bar -->
                         <div class="dm-quick-actions-bar mb-2 d-flex align-items-center gap-2 overflow-x-auto pb-1" id="dmQuickActionsBar">
                             <span class="dm-quick-label small text-muted d-none d-sm-inline">Quick prompts:</span>
-                            <button type="button" class="btn btn-sm dm-quick-pill" data-action="summarize" title="Summarize document">
-                                <i class="bi bi-file-earmark-text text-primary"></i> <span>Summarize</span>
+                            <button type="button" class="btn btn-sm dm-quick-pill" data-action="mind_map" title="Generate Mind Map">
+                                <i class="bi bi-diagram-3 text-primary"></i> <span>Mind Map</span>
                             </button>
-                            <button type="button" class="btn btn-sm dm-quick-pill" data-action="key_findings" title="Key findings">
-                                <i class="bi bi-lightbulb text-warning"></i> <span>Key Insights</span>
+                            <button type="button" class="btn btn-sm dm-quick-pill" data-action="summary" title="Comprehensive Summary">
+                                <i class="bi bi-file-earmark-text text-info"></i> <span>Summary</span>
                             </button>
-                            <button type="button" class="btn btn-sm dm-quick-pill" data-action="explain_simply" title="Explain concepts">
-                                <i class="bi bi-compass text-info"></i> <span>Main Concepts</span>
+                            <button type="button" class="btn btn-sm dm-quick-pill" data-action="exam_questions" title="Related Exam Questions">
+                                <i class="bi bi-journal-check text-warning"></i> <span>Related Exam Questions</span>
                             </button>
-                            <button type="button" class="btn btn-sm dm-quick-pill" data-action="conclusions" title="Conclusions">
-                                <i class="bi bi-check2-circle text-success"></i> <span>Conclusions</span>
+                            <button type="button" class="btn btn-sm dm-quick-pill" data-action="viva_questions" title="Viva Voce Questions">
+                                <i class="bi bi-chat-left-quote text-success"></i> <span>Viva Questions</span>
                             </button>
                         </div>
 

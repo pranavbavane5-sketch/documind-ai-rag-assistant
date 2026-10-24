@@ -197,16 +197,22 @@ document.addEventListener('DOMContentLoaded', () => {
             locale: 'en-IN',
             fallbackLocales: ['en-US', 'en-GB', 'en'],
             quickPrompts: {
-                summarize: 'Summarize this document and highlight its core concepts and key takeaways.',
-                key_findings: 'What are the key findings, definitions, and concepts explained in the text?',
-                explain_simply: 'Explain the main concepts of this document in clear, easy to understand terms.',
-                conclusions: 'What are the main conclusions and practical applications discussed?'
+                mind_map: 'Generate a structured visual mind map and concept breakdown of this document showing core topics, subtopics, and relationships.',
+                summary: 'Provide a comprehensive structured summary of this document, highlighting the core concepts, methodologies, and key takeaways.',
+                exam_questions: 'Generate important exam-oriented short and long questions based on this document with model answers and key marking points.',
+                viva_questions: 'Generate top viva-voce and technical oral examination questions based on this document with concise, concept-focused answers.'
+            },
+            quickPills: {
+                mind_map: 'Mind Map',
+                summary: 'Summary',
+                exam_questions: 'Related Exam Questions',
+                viva_questions: 'Viva Questions'
             },
             suggestedChips: [
-                { icon: 'bi-file-earmark-text', text: 'Summarize this document', prompt: 'Summarize this document and highlight its core concepts and key takeaways.' },
-                { icon: 'bi-lightbulb', text: 'Find the key insights', prompt: 'What are the key findings, definitions, and concepts explained in the text?' },
-                { icon: 'bi-compass', text: 'Explain the main concepts', prompt: 'Explain the main concepts of this document in clear, easy to understand terms.' },
-                { icon: 'bi-check2-circle', text: 'What are the conclusions?', prompt: 'What are the main conclusions and practical applications discussed?' }
+                { icon: 'bi-diagram-3', text: 'Mind Map', prompt: 'Generate a structured visual mind map and concept breakdown of this document showing core topics, subtopics, and relationships.', action: 'mind_map' },
+                { icon: 'bi-file-earmark-text', text: 'Summary', prompt: 'Provide a comprehensive structured summary of this document, highlighting the core concepts, methodologies, and key takeaways.', action: 'summary' },
+                { icon: 'bi-journal-check', text: 'Related Exam Questions', prompt: 'Generate important exam-oriented short and long questions based on this document with model answers and key marking points.', action: 'exam_questions' },
+                { icon: 'bi-chat-left-quote', text: 'Viva Questions', prompt: 'Generate top viva-voce and technical oral examination questions based on this document with concise, concept-focused answers.', action: 'viva_questions' }
             ],
             listeningText: 'Listening in English (en-IN)... Speak your question',
             noSpeechMsg: 'No speech was detected. Please click the mic and try again.'
@@ -217,16 +223,22 @@ document.addEventListener('DOMContentLoaded', () => {
             locale: 'hi-IN',
             fallbackLocales: ['hi'],
             quickPrompts: {
-                summarize: 'इस दस्तावेज़ का एक व्यापक सारांश प्रस्तुत करें और इसके मुख्य निष्कर्ष और महत्वपूर्ण बिंदु बताएं।',
-                key_findings: 'इस दस्तावेज़ में समझाए गए मुख्य निष्कर्ष, परिभाषाएँ और मूल अवधारणाएँ क्या हैं?',
-                explain_simply: 'इस दस्तावेज़ के मुख्य विषय को सरल शब्दों में आसानी से समझाएं।',
-                conclusions: 'इस दस्तावेज़ के मुख्य निष्कर्ष और व्यावहारिक अनुप्रयोग क्या हैं?'
+                mind_map: 'इस दस्तावेज़ का एक विस्तृत विज़ुअल माइंड मैप (Mind Map) और मुख्य विषयों का वैचारिक विश्लेषण तैयार करें।',
+                summary: 'इस दस्तावेज़ का एक व्यापक सारांश प्रस्तुत करें और इसके मुख्य निष्कर्ष और महत्वपूर्ण बिंदु बताएं।',
+                exam_questions: 'इस दस्तावेज़ पर आधारित परीक्षा उपयोगी महत्वपूर्ण प्रश्न (Exam Questions) और उनके मॉडल उत्तर तैयार करें।',
+                viva_questions: 'मौखिक परीक्षा (Viva-voce) और तकनीकी साक्षात्कार के लिए मुख्य प्रश्न और उनके संक्षिप्त सटीक उत्तर तैयार करें।'
+            },
+            quickPills: {
+                mind_map: 'माइंड मैप',
+                summary: 'सारांश',
+                exam_questions: 'परीक्षा प्रश्न',
+                viva_questions: 'वाइवा प्रश्न'
             },
             suggestedChips: [
-                { icon: 'bi-file-earmark-text', text: 'दस्तावेज़ का सारांश दें', prompt: 'इस दस्तावेज़ का एक व्यापक सारांश प्रस्तुत करें और इसके मुख्य निष्कर्ष और महत्वपूर्ण बिंदु बताएं।' },
-                { icon: 'bi-lightbulb', text: 'मुख्य निष्कर्ष क्या हैं?', prompt: 'इस दस्तावेज़ में समझाए गए मुख्य निष्कर्ष, परिभाषाएँ और मूल अवधारणाएँ क्या हैं?' },
-                { icon: 'bi-compass', text: 'मूल अवधारणाएं समझाएं', prompt: 'इस दस्तावेज़ के मुख्य विषय को सरल शब्दों में आसानी से समझाएं।' },
-                { icon: 'bi-check2-circle', text: 'मुख्य निष्कर्ष और परिणाम', prompt: 'इस दस्तावेज़ के मुख्य निष्कर्ष और व्यावहारिक अनुप्रयोग क्या हैं?' }
+                { icon: 'bi-diagram-3', text: 'माइंड मैप', prompt: 'इस दस्तावेज़ का एक विस्तृत विज़ुअल माइंड मैप (Mind Map) और मुख्य विषयों का वैचारिक विश्लेषण तैयार करें।', action: 'mind_map' },
+                { icon: 'bi-file-earmark-text', text: 'सारांश', prompt: 'इस दस्तावेज़ का एक व्यापक सारांश प्रस्तुत करें और इसके मुख्य निष्कर्ष और महत्वपूर्ण बिंदु बताएं।', action: 'summary' },
+                { icon: 'bi-journal-check', text: 'परीक्षा प्रश्न', prompt: 'इस दस्तावेज़ पर आधारित परीक्षा उपयोगी महत्वपूर्ण प्रश्न (Exam Questions) और उनके मॉडल उत्तर तैयार करें।', action: 'exam_questions' },
+                { icon: 'bi-chat-left-quote', text: 'वाइवा प्रश्न', prompt: 'मौखिक परीक्षा (Viva-voce) और तकनीकी साक्षात्कार के लिए मुख्य प्रश्न और उनके संक्षिप्त सटीक उत्तर तैयार करें।', action: 'viva_questions' }
             ],
             listeningText: 'हिन्दी में सुन रहे हैं (hi-IN)... अपना प्रश्न बोलें',
             noSpeechMsg: 'कोई आवाज़ नहीं सुनाई दी। कृपया माइक पर दोबारा क्लिक करें।'
@@ -237,16 +249,22 @@ document.addEventListener('DOMContentLoaded', () => {
             locale: 'mr-IN',
             fallbackLocales: ['mr', 'hi-IN'],
             quickPrompts: {
-                summarize: 'या दस्तऐवजाचा सर्वसमावेशक सारांश द्या आणि त्यातील मुख्य संकल्पना व निष्कर्ष स्पष्ट करा.',
-                key_findings: 'दस्तऐवजातील प्रमुख निष्कर्ष, व्याख्या आणि महत्त्वाच्या संकल्पना कोणत्या आहेत?',
-                explain_simply: 'या दस्तऐवजाचा मुख्य विषय सोप्या भाषेत समजावून सांगा.',
-                conclusions: 'या दस्तऐवजाचे मुख्य निष्कर्ष आणि व्यावहारिक उपयोग काय आहेत?'
+                mind_map: 'या दस्तऐवजाचा सविस्तर व्हिज्युअल माइंड मॅप (Mind Map) आणि मुख्य घटकांचे विश्लेषण तयार करा.',
+                summary: 'या दस्तऐवजाचा सर्वसमावेशक सारांश द्या आणि त्यातील मुख्य संकल्पना व निष्कर्ष स्पष्ट करा.',
+                exam_questions: 'या दस्तऐवजावर आधारित महत्त्वाचे परीक्षाभिमुख प्रश्न (Exam Questions) आणि मॉडेल उत्तरे तयार करा.',
+                viva_questions: 'तोंडी परीक्षेसाठी (Viva Questions) आणि तांत्रिक मुलाखतीसाठी महत्त्वाचे प्रश्न आणि अचूक उत्तरे तयार करा.'
+            },
+            quickPills: {
+                mind_map: 'माइंड मॅप',
+                summary: 'सारांश',
+                exam_questions: 'परीक्षा प्रश्न',
+                viva_questions: 'व्हायव्हा प्रश्न'
             },
             suggestedChips: [
-                { icon: 'bi-file-earmark-text', text: 'दस्तऐवजाचा सारांश द्या', prompt: 'या दस्तऐवजाचा सर्वसमावेशक सारांश द्या आणि त्यातील मुख्य संकल्पना व निष्कर्ष स्पष्ट करा.' },
-                { icon: 'bi-lightbulb', text: 'प्रमुख निष्कर्ष कोणते आहेत?', prompt: 'दस्तऐवजातील प्रमुख निष्कर्ष, व्याख्या आणि महत्त्वाच्या संकल्पना कोणत्या आहेत?' },
-                { icon: 'bi-compass', text: 'मुख्य संकल्पना स्पष्ट करा', prompt: 'या दस्तऐवजाचा मुख्य विषय सोप्या भाषेत समजावून सांगा.' },
-                { icon: 'bi-check2-circle', text: 'मुख्य निष्कर्ष काय आहेत?', prompt: 'या दस्तऐवजाचे मुख्य निष्कर्ष आणि व्यावहारिक उपयोग काय आहेत?' }
+                { icon: 'bi-diagram-3', text: 'माइंड मॅप', prompt: 'या दस्तऐवजाचा सविस्तर व्हिज्युअल माइंड मॅप (Mind Map) आणि मुख्य घटकांचे विश्लेषण तयार करा.', action: 'mind_map' },
+                { icon: 'bi-file-earmark-text', text: 'सारांश', prompt: 'या दस्तऐवजाचा सर्वसमावेशक सारांश द्या आणि त्यातील मुख्य संकल्पना व निष्कर्ष स्पष्ट करा.', action: 'summary' },
+                { icon: 'bi-journal-check', text: 'परीक्षा प्रश्न', prompt: 'या दस्तऐवजावर आधारित महत्त्वाचे परीक्षाभिमुख प्रश्न (Exam Questions) आणि मॉडेल उत्तरे तयार करा.', action: 'exam_questions' },
+                { icon: 'bi-chat-left-quote', text: 'व्हायव्हा प्रश्न', prompt: 'तोंडी परीक्षेसाठी (Viva Questions) आणि तांत्रिक मुलाखतीसाठी महत्त्वाचे प्रश्न आणि अचूक उत्तरे तयार करा.', action: 'viva_questions' }
             ],
             listeningText: 'मराठीत ऐकत आहे (mr-IN)... आपला प्रश्न बोला',
             noSpeechMsg: 'कोणताही आवाज ऐकू आला नाही. कृपया माइकवर पुन्हा क्लिक करा.'
@@ -268,6 +286,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const langLabel = document.getElementById('dmSelectedLangLabel');
         if (langLabel) langLabel.textContent = cfg.label;
+
+        // Update bottom quick action pills labels
+        const quickBar = document.getElementById('dmQuickActionsBar');
+        if (quickBar && cfg.quickPills) {
+            quickBar.querySelectorAll('.dm-quick-pill').forEach(btn => {
+                const action = btn.getAttribute('data-action');
+                const span = btn.querySelector('span');
+                if (span && cfg.quickPills[action]) {
+                    span.textContent = cfg.quickPills[action];
+                }
+            });
+        }
 
         updatePromptChips(langCode);
     }
@@ -522,13 +552,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.dm-pill-chip').forEach(chip => {
             chip.onclick = () => {
                 const promptText = chip.getAttribute('data-prompt');
-                if (queryInput) {
+                const action = chip.getAttribute('data-action');
+                if (queryInput && promptText) {
                     queryInput.value = promptText;
                     queryInput.dispatchEvent(new Event('input'));
                     if (window.innerWidth < 992 && tabBtnChat) {
                         tabBtnChat.click();
                     }
-                    chatForm.dispatchEvent(new Event('submit'));
+                    const isVisual = (action === 'mind_map');
+                    submitQuery(promptText, isVisual);
                 }
             };
         });
@@ -545,6 +577,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.createElement('button');
             btn.className = 'dm-pill-chip';
             btn.setAttribute('data-prompt', chip.prompt);
+            if (chip.action) {
+                btn.setAttribute('data-action', chip.action);
+            }
             btn.innerHTML = `<i class="bi ${chip.icon} text-primary"></i> <span>${escapeHtml(chip.text)}</span>`;
             chipsContainer.appendChild(btn);
         });
@@ -572,7 +607,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (window.innerWidth < 992 && tabBtnChat) {
                         tabBtnChat.click();
                     }
-                    chatForm.dispatchEvent(new Event('submit'));
+                    const isVisual = (action === 'mind_map');
+                    submitQuery(promptText, isVisual);
                 }
             });
         });
