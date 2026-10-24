@@ -1,19 +1,24 @@
 import os
 import json
 from pathlib import Path
+from functools import wraps
+
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.conf import settings
 
-from .models import Document
+from .models import Document, UserProfile, AdminAuditLog, UserQueryHistory
 from .services import (
     validate_file,
     process_and_index_document,
     delete_document_from_index,
     query_rag_pipeline,
+    retrieve_relevant_chunks,
     get_total_indexed_vectors,
     get_active_gemini_api_key,
     generate_exam_questions,
@@ -21,12 +26,50 @@ from .services import (
 )
 
 
+def get_client_ip(request) -> str:
+    """Extracts client IP address with proxy support."""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        return x_forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '127.0.0.1')
+
+
+def admin_required(view_func):
+    """
+    Decorator for views requiring administrator privileges.
+    Guarantees least-privilege server-side authorization checks.
+    Returns custom 403 Forbidden page for unauthorized attempts.
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect(f"{settings.LOGIN_URL}?next={request.path}")
+        
+        is_admin = (
+            request.user.is_staff or 
+            request.user.is_superuser or 
+            getattr(getattr(request.user, 'profile', None), 'is_admin', False)
+        )
+        if not is_admin:
+            return render(request, 'documents/403.html', status=403)
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
 @ensure_csrf_cookie
 def home(request):
     """
     Renders the modern Antigravity Document Intelligence Assistant dashboard.
+    Enforces document ownership: logged-in students see only their own documents.
     """
-    documents = Document.objects.filter(is_processed=True)
+    if request.user.is_authenticated:
+        documents = Document.objects.filter(user=request.user, is_processed=True)
+        user_vectors = sum(d.chunk_count for d in documents)
+    else:
+        # Unauthenticated guests see repository interface with prompt to log in
+        documents = Document.objects.filter(user__isnull=True, is_processed=True)
+        user_vectors = 0
+
     total_vectors = get_total_indexed_vectors()
     model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-3.5-flash-lite')
     api_key_present = bool(get_active_gemini_api_key())
@@ -34,6 +77,7 @@ def home(request):
     return render(request, 'documents/index.html', {
         'documents': documents,
         'total_vectors': total_vectors,
+        'user_vectors': user_vectors,
         'model_name': model_name,
         'api_key_present': api_key_present,
     })
@@ -48,8 +92,11 @@ def home(request):
 def api_upload(request):
     """
     Asynchronous document upload endpoint supporting PDF and TXT files.
-    Extracts text, calculates semantic chunks, indexes into ChromaDB.
+    Enforces tenant isolation: links uploaded document strictly to request.user.
     """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Authentication required. Please sign in.'}, status=401)
+
     uploaded_file = request.FILES.get('document')
     if not uploaded_file:
         return JsonResponse({'success': False, 'error': 'No file was provided.'}, status=400)
@@ -60,8 +107,9 @@ def api_upload(request):
 
     ext = Path(uploaded_file.name).suffix.lower()
 
-    # Create model record
+    # Create model record linked to owning user
     doc = Document.objects.create(
+        user=request.user,
         original_name=uploaded_file.name,
         file=uploaded_file,
         file_type=ext,
@@ -97,8 +145,11 @@ def api_upload(request):
 def api_ask(request):
     """
     Asynchronous chat query endpoint.
-    Retrieves semantic context from vector store and queries Gemini API.
+    Retrieves semantic context strictly from documents owned by the requesting user.
     """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Authentication required. Please sign in.'}, status=401)
+
     try:
         data = json.loads(request.body.decode('utf-8'))
         query = data.get('query', '').strip()
@@ -119,15 +170,37 @@ def api_ask(request):
     if not query:
         return JsonResponse({'success': False, 'error': 'Please enter a valid question.'}, status=400)
 
-    # Check if documents exist in knowledge base
-    if not Document.objects.filter(is_processed=True).exists():
+    # Strictly retrieve documents owned by the student
+    user_docs = Document.objects.filter(user=request.user, is_processed=True)
+    user_doc_ids = list(user_docs.values_list('id', flat=True))
+
+    if not user_doc_ids:
         return JsonResponse({
             'success': False,
             'error': 'Please upload at least one document before asking questions.'
         }, status=400)
 
     top_k = getattr(settings, 'TOP_K_CHUNKS', 4)
-    result = query_rag_pipeline(query, top_k=top_k, language=language, force_visual=force_visual)
+    result = query_rag_pipeline(
+        query,
+        top_k=top_k,
+        language=language,
+        force_visual=force_visual,
+        allowed_doc_ids=user_doc_ids
+    )
+
+    # Record inquiry in query history
+    try:
+        UserQueryHistory.objects.create(
+            user=request.user,
+            query_text=query,
+            answer_preview=(result.get('answer') or '')[:300],
+            sources_count=len(result.get('sources', [])),
+            has_context_match=result.get('has_context_match', True),
+            language=language
+        )
+    except Exception:
+        pass
 
     return JsonResponse({
         'success': True,
@@ -145,11 +218,23 @@ def api_ask(request):
 @require_POST
 def api_delete(request, document_id):
     """
-    Asynchronous deletion endpoint. Removes document from database and vector index.
+    Asynchronous deletion endpoint. Enforces strict ownership validation.
     """
-    doc = get_object_or_404(Document, id=document_id)
-    doc_name = doc.original_name
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Authentication required.'}, status=401)
 
+    doc = get_object_or_404(Document, id=document_id)
+    is_admin = (
+        request.user.is_staff or 
+        request.user.is_superuser or 
+        getattr(getattr(request.user, 'profile', None), 'is_admin', False)
+    )
+
+    # Ownership verification
+    if doc.user_id != request.user.id and not is_admin:
+        return JsonResponse({'success': False, 'error': 'Access denied: You do not own this document.'}, status=403)
+
+    doc_name = doc.original_name
     delete_document_from_index(doc)
     doc.delete()
 
@@ -165,7 +250,11 @@ def api_status(request):
     """
     Returns live system status: vector counts, model info, and document counts.
     """
-    docs_count = Document.objects.filter(is_processed=True).count()
+    if request.user.is_authenticated:
+        docs_count = Document.objects.filter(user=request.user, is_processed=True).count()
+    else:
+        docs_count = Document.objects.filter(user__isnull=True, is_processed=True).count()
+
     total_vectors = get_total_indexed_vectors()
     model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-3.5-flash-lite')
     api_key_configured = bool(get_active_gemini_api_key())
@@ -214,7 +303,6 @@ def api_save_key(request):
         else:
             env_path.write_text(f"GEMINI_API_KEY={api_key}\n", encoding='utf-8')
     except Exception:
-        # On read-only serverless environments, in-memory activation is already complete
         pass
 
     return JsonResponse({
@@ -223,85 +311,16 @@ def api_save_key(request):
     })
 
 
-# -----------------------------------------------------------------------------
-# Standard Form Fallback Endpoints (For Traditional Form POSTs)
-# -----------------------------------------------------------------------------
-
-@require_POST
-def upload_document(request):
-    uploaded_file = request.FILES.get('document')
-    if not uploaded_file:
-        messages.error(request, "No file selected.")
-        return redirect('home')
-
-    is_valid, err_msg = validate_file(uploaded_file)
-    if not is_valid:
-        messages.error(request, err_msg)
-        return redirect('home')
-
-    ext = Path(uploaded_file.name).suffix.lower()
-    doc = Document.objects.create(
-        original_name=uploaded_file.name,
-        file=uploaded_file,
-        file_type=ext,
-        file_size=uploaded_file.size,
-        is_processed=False
-    )
-    try:
-        chunks_count = process_and_index_document(doc)
-        messages.success(request, f"Processed '{doc.original_name}' into {chunks_count} chunks.")
-    except Exception as e:
-        doc.error_message = str(e)
-        doc.save()
-        messages.error(request, f"Error processing file: {str(e)}")
-
-    return redirect('home')
-
-
-@require_POST
-def delete_document(request, document_id):
-    doc = get_object_or_404(Document, id=document_id)
-    name = doc.original_name
-    delete_document_from_index(doc)
-    doc.delete()
-    messages.info(request, f"Deleted document '{name}'.")
-    return redirect('home')
-
-
-@require_POST
-def ask_question(request):
-    query = request.POST.get('question', '').strip()
-    if not query:
-        messages.warning(request, "Please enter a question.")
-        return redirect('home')
-
-    documents = Document.objects.filter(is_processed=True)
-    if not documents.exists():
-        messages.warning(request, "Please upload at least one document before asking questions.")
-        return redirect('home')
-
-    result = query_rag_pipeline(query, top_k=getattr(settings, 'TOP_K_CHUNKS', 4))
-
-    return render(request, 'documents/index.html', {
-        'documents': documents,
-        'query': query,
-        'answer': result.get('answer'),
-        'sources': result.get('sources', []),
-        'has_context_match': result.get('has_context_match', True),
-        'total_vectors': result.get('total_vectors', 0),
-        'model_name': getattr(settings, 'GEMINI_MODEL', 'gemini-1.5-flash'),
-        'api_key_present': bool(getattr(settings, 'GEMINI_API_KEY', '').strip()),
-    })
-
-
 @csrf_exempt
 @require_POST
 def api_exam_generate_questions(request):
     """
     Asynchronous endpoint to generate university exam-oriented questions
-    and structured model answers strictly from uploaded document material.
-    Supports marks filters: 'all', '2', '5', '10'.
+    and structured model answers strictly from the requesting user's documents.
     """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Authentication required. Please sign in.'}, status=401)
+
     try:
         data = json.loads(request.body.decode('utf-8'))
         marks = data.get('marks', 'all')
@@ -320,19 +339,21 @@ def api_exam_generate_questions(request):
         settings.GEMINI_API_KEY = client_key
         os.environ['GEMINI_API_KEY'] = client_key
 
-    # Check if processed documents exist
-    if not Document.objects.filter(is_processed=True).exists():
+    user_docs = Document.objects.filter(user=request.user, is_processed=True)
+    user_doc_ids = list(user_docs.values_list('id', flat=True))
+
+    if not user_doc_ids:
         return JsonResponse({
             'success': False,
             'error': 'Please upload and index at least one document before generating exam questions.'
         }, status=400)
 
-    # If document_id was provided, verify it exists and is processed
+    # Verify specific document ownership if requested
     if doc_id:
         try:
             doc_id = int(doc_id)
-            if not Document.objects.filter(id=doc_id, is_processed=True).exists():
-                return JsonResponse({'success': False, 'error': 'Selected document is not indexed.'}, status=400)
+            if doc_id not in user_doc_ids:
+                return JsonResponse({'success': False, 'error': 'Access denied: You do not own this document.'}, status=403)
         except (ValueError, TypeError):
             doc_id = None
 
@@ -340,7 +361,8 @@ def api_exam_generate_questions(request):
         marks=marks,
         document_id=doc_id,
         language=language,
-        exclude_questions=exclude
+        exclude_questions=exclude,
+        allowed_doc_ids=user_doc_ids
     )
     return JsonResponse(result, status=200 if result.get('success') else 400)
 
@@ -350,7 +372,11 @@ def api_exam_generate_questions(request):
 def api_exam_generate_answer(request):
     """
     Generates an individual exam-ready model answer strictly tailored to the specified marks.
+    Grounded strictly in the user's owned study materials.
     """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Authentication required. Please sign in.'}, status=401)
+
     try:
         data = json.loads(request.body.decode('utf-8'))
         question = data.get('question', '').strip()
@@ -372,12 +398,17 @@ def api_exam_generate_answer(request):
     if not question:
         return JsonResponse({'success': False, 'error': 'Please provide a valid question.'}, status=400)
 
-    if not Document.objects.filter(is_processed=True).exists():
+    user_docs = Document.objects.filter(user=request.user, is_processed=True)
+    user_doc_ids = list(user_docs.values_list('id', flat=True))
+
+    if not user_doc_ids:
         return JsonResponse({'success': False, 'error': 'Please upload at least one document first.'}, status=400)
 
     if doc_id:
         try:
             doc_id = int(doc_id)
+            if doc_id not in user_doc_ids:
+                return JsonResponse({'success': False, 'error': 'Access denied: You do not own this document.'}, status=403)
         except (ValueError, TypeError):
             doc_id = None
 
@@ -385,6 +416,230 @@ def api_exam_generate_answer(request):
         question=question,
         marks=marks,
         document_id=doc_id,
-        language=language
+        language=language,
+        allowed_doc_ids=user_doc_ids
     )
     return JsonResponse(result, status=200 if result.get('success') else 400)
+
+
+# -----------------------------------------------------------------------------
+# Standard Form Fallback Endpoints (For Traditional Form POSTs)
+# -----------------------------------------------------------------------------
+
+@require_POST
+def upload_document(request):
+    if not request.user.is_authenticated:
+        messages.error(request, "Authentication required. Please sign in.")
+        return redirect(f"{settings.LOGIN_URL}?next={request.path}")
+
+    uploaded_file = request.FILES.get('document')
+    if not uploaded_file:
+        messages.error(request, "No file selected.")
+        return redirect('home')
+
+    is_valid, err_msg = validate_file(uploaded_file)
+    if not is_valid:
+        messages.error(request, err_msg)
+        return redirect('home')
+
+    ext = Path(uploaded_file.name).suffix.lower()
+    doc = Document.objects.create(
+        user=request.user,
+        original_name=uploaded_file.name,
+        file=uploaded_file,
+        file_type=ext,
+        file_size=uploaded_file.size,
+        is_processed=False
+    )
+    try:
+        chunks_count = process_and_index_document(doc)
+        messages.success(request, f"Processed '{doc.original_name}' into {chunks_count} chunks.")
+    except Exception as e:
+        doc.error_message = str(e)
+        doc.save()
+        messages.error(request, f"Error processing file: {str(e)}")
+
+    return redirect('home')
+
+
+@require_POST
+def delete_document(request, document_id):
+    if not request.user.is_authenticated:
+        return redirect(settings.LOGIN_URL)
+
+    doc = get_object_or_404(Document, id=document_id)
+    is_admin = (
+        request.user.is_staff or 
+        request.user.is_superuser or 
+        getattr(getattr(request.user, 'profile', None), 'is_admin', False)
+    )
+    if doc.user_id != request.user.id and not is_admin:
+        messages.error(request, "Access denied: You do not own this document.")
+        return redirect('home')
+
+    name = doc.original_name
+    delete_document_from_index(doc)
+    doc.delete()
+    messages.info(request, f"Deleted document '{name}'.")
+    return redirect('home')
+
+
+@require_POST
+def ask_question(request):
+    if not request.user.is_authenticated:
+        return redirect(settings.LOGIN_URL)
+
+    query = request.POST.get('question', '').strip()
+    if not query:
+        messages.warning(request, "Please enter a question.")
+        return redirect('home')
+
+    user_docs = Document.objects.filter(user=request.user, is_processed=True)
+    if not user_docs.exists():
+        messages.warning(request, "Please upload at least one document before asking questions.")
+        return redirect('home')
+
+    user_doc_ids = list(user_docs.values_list('id', flat=True))
+    result = query_rag_pipeline(
+        query,
+        top_k=getattr(settings, 'TOP_K_CHUNKS', 4),
+        allowed_doc_ids=user_doc_ids
+    )
+
+    return render(request, 'documents/index.html', {
+        'documents': user_docs,
+        'query': query,
+        'answer': result.get('answer'),
+        'sources': result.get('sources', []),
+        'has_context_match': result.get('has_context_match', True),
+        'total_vectors': result.get('total_vectors', 0),
+        'model_name': getattr(settings, 'GEMINI_MODEL', 'gemini-3.5-flash-lite'),
+        'api_key_present': bool(getattr(settings, 'GEMINI_API_KEY', '').strip()),
+    })
+
+
+# -----------------------------------------------------------------------------
+# User Profile & Account Views
+# -----------------------------------------------------------------------------
+
+@login_required
+def profile_view(request):
+    """
+    Renders user profile, assigned role, statistics, and logout controls.
+    """
+    doc_count = Document.objects.filter(user=request.user).count()
+    vector_count = sum(d.chunk_count for d in Document.objects.filter(user=request.user))
+    return render(request, 'documents/profile.html', {
+        'document_count': doc_count,
+        'vector_count': vector_count,
+    })
+
+
+# -----------------------------------------------------------------------------
+# Administrative Operations & Role-Based Access Control (RBAC)
+# -----------------------------------------------------------------------------
+
+@admin_required
+def admin_dashboard(request):
+    """
+    Protected Operations Console for authorized staff and administrators.
+    Allows inspecting metrics, managing users, reviewing audit logs, and status toggles.
+    """
+    total_users = User.objects.count()
+    student_count = UserProfile.objects.filter(role=UserProfile.ROLE_STUDENT).count()
+    admin_count = UserProfile.objects.filter(role=UserProfile.ROLE_ADMIN).count()
+    total_documents = Document.objects.count()
+    total_storage_bytes = sum(d.file_size for d in Document.objects.all())
+
+    # Format storage size nicely
+    size = float(total_storage_bytes)
+    storage_display = "0.0 B"
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if size < 1024.0:
+            storage_display = f"{size:.1f} {unit}"
+            break
+        size /= 1024.0
+
+    total_vectors = get_total_indexed_vectors()
+    total_queries = UserQueryHistory.objects.count()
+    users = User.objects.select_related('profile').prefetch_related('documents').order_by('-date_joined')
+    audit_logs = AdminAuditLog.objects.select_related('admin_user', 'target_user').order_by('-created_at')[:50]
+
+    return render(request, 'documents/admin_dashboard.html', {
+        'total_users': total_users,
+        'student_count': student_count,
+        'admin_count': admin_count,
+        'total_documents': total_documents,
+        'total_storage_display': storage_display,
+        'total_vectors': total_vectors,
+        'total_queries': total_queries,
+        'users': users,
+        'audit_logs': audit_logs,
+        'embedding_model': getattr(settings, 'EMBEDDING_MODEL_NAME', 'gemini-embedding-001'),
+        'gemini_model': getattr(settings, 'GEMINI_MODEL', 'gemini-3.5-flash-lite'),
+    })
+
+
+@admin_required
+@require_POST
+def admin_toggle_user_status(request, user_id):
+    """
+    Toggles user account status (active/deactivated) and records administrative audit log.
+    Prevents administrators from deactivating their own account.
+    """
+    target_user = get_object_or_404(User, id=user_id)
+    if target_user.id == request.user.id:
+        messages.error(request, "Security protection: You cannot deactivate your own administrative account.")
+        return redirect('admin_dashboard')
+
+    target_user.is_active = not target_user.is_active
+    target_user.save(update_fields=['is_active'])
+
+    action_str = "USER_ACTIVATED" if target_user.is_active else "USER_DEACTIVATED"
+    AdminAuditLog.objects.create(
+        admin_user=request.user,
+        action=action_str,
+        target_user=target_user,
+        details=f"Account status set to {'Active' if target_user.is_active else 'Deactivated'}.",
+        ip_address=get_client_ip(request)
+    )
+    messages.success(request, f"User '{target_user.username}' has been {'activated' if target_user.is_active else 'deactivated'}.")
+    return redirect('admin_dashboard')
+
+
+@admin_required
+@require_POST
+def admin_toggle_user_role(request, user_id):
+    """
+    Toggles user role between Student and Administrator.
+    Synchronizes Django staff permissions and records administrative audit trail.
+    """
+    target_user = get_object_or_404(User, id=user_id)
+    if target_user.id == request.user.id:
+        messages.error(request, "Security protection: You cannot demote your own administrative account.")
+        return redirect('admin_dashboard')
+
+    profile, _ = UserProfile.objects.get_or_create(user=target_user)
+    if profile.role == UserProfile.ROLE_ADMIN or target_user.is_staff:
+        profile.role = UserProfile.ROLE_STUDENT
+        target_user.is_staff = False
+        action_str = "ROLE_DEMOTED"
+        msg = f"User '{target_user.username}' demoted to Student."
+    else:
+        profile.role = UserProfile.ROLE_ADMIN
+        target_user.is_staff = True
+        action_str = "ROLE_PROMOTED"
+        msg = f"User '{target_user.username}' promoted to Administrator."
+
+    profile.save(update_fields=['role'])
+    target_user.save(update_fields=['is_staff'])
+
+    AdminAuditLog.objects.create(
+        admin_user=request.user,
+        action=action_str,
+        target_user=target_user,
+        details=msg,
+        ip_address=get_client_ip(request)
+    )
+    messages.success(request, msg)
+    return redirect('admin_dashboard')

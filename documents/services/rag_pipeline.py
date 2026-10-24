@@ -88,8 +88,20 @@ class LightweightVectorStore:
     def count(self) -> int:
         return len(self.data)
 
-    def query(self, query_embeddings: List[List[float]], n_results: int = 4, include: Optional[List[str]] = None):
+    def query(self, query_embeddings: List[List[float]], n_results: int = 4, include: Optional[List[str]] = None, where: Optional[Dict[str, Any]] = None):
         if not self.data or not query_embeddings:
+            return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
+
+        candidates = self.data
+        if where:
+            target_doc_id = where.get('document_id')
+            if isinstance(target_doc_id, dict) and '$in' in target_doc_id:
+                allowed_set = set(target_doc_id['$in'])
+                candidates = [item for item in candidates if item.get('metadata', {}).get('document_id') in allowed_set]
+            elif target_doc_id is not None:
+                candidates = [item for item in candidates if item.get('metadata', {}).get('document_id') == target_doc_id]
+
+        if not candidates:
             return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
 
         query_vec = np.array(query_embeddings[0], dtype=np.float32)
@@ -98,7 +110,7 @@ class LightweightVectorStore:
             q_norm = 1.0
 
         scores = []
-        for item in self.data:
+        for item in candidates:
             doc_vec = np.array(item['embedding'], dtype=np.float32)
             d_norm = float(np.linalg.norm(doc_vec))
             if d_norm == 0:
@@ -374,6 +386,7 @@ def process_and_index_document(document: Document) -> int:
             "filename": document.original_name,
             "page": int(c['page']),
             "chunk_index": int(c['chunk_index']),
+            "user_id": document.user_id if document.user_id else 0,
         }
         for c in chunks
     ]
@@ -496,17 +509,34 @@ def expand_cross_lingual_query(query: str, api_key: str = '') -> str:
     return query
 
 
-def retrieve_relevant_chunks(query: str, top_k: int = 4, document_id: Optional[int] = None) -> List[Dict[str, Any]]:
+def retrieve_relevant_chunks(
+    query: str,
+    top_k: int = 4,
+    document_id: Optional[int] = None,
+    allowed_doc_ids: Optional[List[int]] = None
+) -> List[Dict[str, Any]]:
     """
     Performs cosine similarity search against ChromaDB using the embedded query.
     Supports cross-lingual query expansion for Hindi and Marathi queries.
-    Supports filtering to a specific document_id when provided.
+    Strictly filters retrieval to `allowed_doc_ids` to guarantee tenant isolation.
     Returns ranked chunks with confidence/relevance scores.
     """
     collection = get_chroma_collection()
     count = collection.count()
     if count == 0:
         return []
+
+    # If tenant has no indexed documents, immediately return empty results
+    if allowed_doc_ids is not None and len(allowed_doc_ids) == 0:
+        return []
+
+    # If a specific document is requested, ensure tenant owns it
+    if document_id is not None and allowed_doc_ids is not None:
+        try:
+            if int(document_id) not in [int(x) for x in allowed_doc_ids]:
+                return []
+        except (ValueError, TypeError):
+            return []
 
     queries_to_search = [query]
 
@@ -528,7 +558,7 @@ def retrieve_relevant_chunks(query: str, top_k: int = 4, document_id: Optional[i
             queries_to_search.append(english_expansion)
 
     chunks_by_id = {}
-    n_results = min(top_k, count)
+    n_results = min(top_k * 2, count)
     query_embeddings = generate_dense_embeddings(queries_to_search)
 
     for q, q_emb in zip(queries_to_search, query_embeddings):
@@ -537,11 +567,18 @@ def retrieve_relevant_chunks(query: str, top_k: int = 4, document_id: Optional[i
             "n_results": n_results,
             "include": ["documents", "metadatas", "distances"]
         }
+
+        # Build where clause for ChromaDB & LightweightVectorStore
         if document_id is not None:
             try:
                 query_kwargs["where"] = {"document_id": int(document_id)}
             except (ValueError, TypeError):
                 pass
+        elif allowed_doc_ids is not None:
+            if len(allowed_doc_ids) == 1:
+                query_kwargs["where"] = {"document_id": int(allowed_doc_ids[0])}
+            else:
+                query_kwargs["where"] = {"document_id": {"$in": [int(x) for x in allowed_doc_ids]}}
 
         results = collection.query(**query_kwargs)
 
@@ -551,13 +588,19 @@ def retrieve_relevant_chunks(query: str, top_k: int = 4, document_id: Optional[i
             dists = results["distances"][0] if "distances" in results else [0.0] * len(docs)
 
             for doc_text, meta, dist in zip(docs, metas, dists):
+                # Strict tenant defense-in-depth verification
+                chunk_doc_id = meta.get("document_id")
+                if allowed_doc_ids is not None:
+                    if chunk_doc_id not in allowed_doc_ids and int(chunk_doc_id) not in allowed_doc_ids:
+                        continue
+
                 similarity_pct = max(0, min(100, round((1.0 - (float(dist) / 2.0)) * 100)))
-                chunk_id = f"{meta.get('document_id')}_{meta.get('chunk_index')}"
+                chunk_id = f"{chunk_doc_id}_{meta.get('chunk_index')}"
 
                 # Retain the highest score if retrieved via both original & expanded queries
                 if chunk_id not in chunks_by_id or similarity_pct > chunks_by_id[chunk_id]["relevance_score"]:
                     chunks_by_id[chunk_id] = {
-                        "document_id": meta.get("document_id"),
+                        "document_id": chunk_doc_id,
                         "filename": meta.get("filename", "Document"),
                         "page": meta.get("page", 1),
                         "chunk_index": meta.get("chunk_index", 1),
@@ -630,10 +673,17 @@ def parse_llm_visual_response(raw_text: str) -> Tuple[str, Optional[Dict[str, An
     return raw_text.strip(), None
 
 
-def query_rag_pipeline(query: str, top_k: int = 4, language: str = 'en', force_visual: bool = False) -> Dict[str, Any]:
+def query_rag_pipeline(
+    query: str,
+    top_k: int = 4,
+    language: str = 'en',
+    force_visual: bool = False,
+    document_id: Optional[int] = None,
+    allowed_doc_ids: Optional[List[int]] = None
+) -> Dict[str, Any]:
     """
     Complete Multilingual RAG workflow with Smart Visual Learning Engine:
-    1. Cross-lingual semantic similarity retrieval via ChromaDB.
+    1. Cross-lingual semantic similarity retrieval via ChromaDB strictly isolated to allowed_doc_ids.
     2. Context-grounded response and visual diagram/chart synthesis via Google Gemini API.
     3. Intelligent visual selection (Flowchart, Block Diagram, Timeline, Concept Map, Bar/Pie Charts).
     4. Strict document grounding & anti-hallucination verification.
@@ -649,7 +699,12 @@ def query_rag_pipeline(query: str, top_k: int = 4, language: str = 'en', force_v
     is_synthesis = any(k in q_lower for k in ['exam', 'question', 'viva', 'mind map', 'summary', 'summarize', 'सारांश', 'प्रश्न', 'परीक्षे']) or force_visual
     eff_top_k = max(top_k, 6) if is_synthesis else top_k
 
-    retrieved_chunks = retrieve_relevant_chunks(query, top_k=eff_top_k)
+    retrieved_chunks = retrieve_relevant_chunks(
+        query,
+        top_k=eff_top_k,
+        document_id=document_id,
+        allowed_doc_ids=allowed_doc_ids
+    )
 
     if not retrieved_chunks:
         return {
@@ -854,11 +909,12 @@ def generate_exam_questions(
     document_id: Optional[int] = None,
     language: str = 'en',
     count: int = 5,
-    exclude_questions: Optional[List[str]] = None
+    exclude_questions: Optional[List[str]] = None,
+    allowed_doc_ids: Optional[List[int]] = None
 ) -> Dict[str, Any]:
     """
     Generates syllabus-oriented college examination questions with structured model answers
-    grounded strictly in the uploaded document content.
+    grounded strictly in the uploaded document content isolated to allowed_doc_ids.
     Supports marks categories: '2', '5', '10', or 'all'.
     """
     collection = get_chroma_collection()
@@ -882,7 +938,7 @@ def generate_exam_questions(
     seen_chunk_ids = set()
 
     for st in search_terms:
-        chunks = retrieve_relevant_chunks(st, top_k=5, document_id=document_id)
+        chunks = retrieve_relevant_chunks(st, top_k=5, document_id=document_id, allowed_doc_ids=allowed_doc_ids)
         for c in chunks:
             cid = f"{c.get('document_id')}_{c.get('chunk_index')}"
             if cid not in seen_chunk_ids:
@@ -894,9 +950,16 @@ def generate_exam_questions(
             get_kwargs = {"limit": 12}
             if document_id:
                 get_kwargs["where"] = {"document_id": int(document_id)}
+            elif allowed_doc_ids:
+                if len(allowed_doc_ids) == 1:
+                    get_kwargs["where"] = {"document_id": int(allowed_doc_ids[0])}
+                else:
+                    get_kwargs["where"] = {"document_id": {"$in": [int(x) for x in allowed_doc_ids]}}
             direct_data = collection.get(**get_kwargs)
             if direct_data and direct_data.get("documents"):
                 for doc_text, meta in zip(direct_data["documents"], direct_data["metadatas"]):
+                    if allowed_doc_ids is not None and meta.get("document_id") not in allowed_doc_ids:
+                        continue
                     sampled_chunks.append({
                         "document_id": meta.get("document_id"),
                         "filename": meta.get("filename", "Document"),
@@ -1117,17 +1180,23 @@ def generate_exam_answer_for_question(
     question: str,
     marks: int = 5,
     document_id: Optional[int] = None,
-    language: str = 'en'
+    language: str = 'en',
+    allowed_doc_ids: Optional[List[int]] = None
 ) -> Dict[str, Any]:
     """
     Generates an individual exam-ready model answer tailored to the specified marks category
-    based strictly on retrieved passages.
+    based strictly on retrieved passages isolated to allowed_doc_ids.
     """
     marks_int = int(marks) if str(marks).isdigit() else 5
     if marks_int not in [2, 5, 10]:
         marks_int = 5
 
-    retrieved_chunks = retrieve_relevant_chunks(question, top_k=6, document_id=document_id)
+    retrieved_chunks = retrieve_relevant_chunks(
+        question,
+        top_k=6,
+        document_id=document_id,
+        allowed_doc_ids=allowed_doc_ids
+    )
     if not retrieved_chunks:
         return {
             "success": False,

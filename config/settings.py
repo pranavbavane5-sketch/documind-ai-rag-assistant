@@ -43,8 +43,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+
+    # Django Allauth & Google OAuth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+
     'documents',
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -53,6 +63,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -158,3 +169,71 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+# -----------------------------------------------------------------------------
+# Authentication & Django Allauth Configuration
+# -----------------------------------------------------------------------------
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# Account registration and authentication policies (django-allauth 65+)
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_LOGOUT_ON_GET = True
+ACCOUNT_LOGOUT_REDIRECT_URL = '/accounts/login/'
+ACCOUNT_SESSION_REMEMBER = True
+ACCOUNT_PRESERVE_USERNAME_CASING = False
+
+# Allauth custom security adapters (enforces least-privilege student role on Google login)
+SOCIALACCOUNT_ADAPTER = 'documents.adapters.CustomSocialAccountAdapter'
+ACCOUNT_ADAPTER = 'documents.adapters.CustomAccountAdapter'
+SOCIALACCOUNT_AUTO_SIGNUP = True
+
+# Google OAuth 2.0 Provider Configuration
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '').strip()
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '').strip()
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': GOOGLE_CLIENT_ID,
+            'secret': GOOGLE_CLIENT_SECRET,
+            'key': '',
+        },
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'OAUTH_PKCE_ENABLED': True,
+        'FETCH_USERINFO': True,
+    }
+}
+
+# -----------------------------------------------------------------------------
+# Security & Session Settings
+# -----------------------------------------------------------------------------
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_AGE = 86400 * 7  # 7 days
+CSRF_COOKIE_HTTPONLY = False  # Allows frontend JavaScript to read csrf token if needed
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True').lower() in ('true', '1')
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
