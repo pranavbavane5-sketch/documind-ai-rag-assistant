@@ -502,82 +502,83 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================================================
-   Studio 3-Panel Horizontal Flexbox Layout
-   Ensures Source Intelligence is ALWAYS locked on the right side, NEVER below.
-   AI Conversation Canvas takes all expanding center width.
+   Studio 3-Column Responsive Dashboard Layout
+   1. Left sidebar: Document Library / uploaded documents (250px)
+   2. Center column: Main AI chat, conversation history, question input (minmax(0, 1fr) - EXPANSIVE)
+   3. Right sidebar: SOURCE INTELLIGENCE / Retrieved Evidence / citations (300px)
    ========================================================================== */
 .dm-studio-workspace {
     width: 100% !important;
     max-width: 100% !important;
-    padding: 1rem 1.25rem 2rem !important;
+    padding: 0.75rem 1.25rem 1.5rem !important;
     box-sizing: border-box !important;
 }
 
+/* Base Desktop Layout: Strict 3-Column CSS Grid */
 .dm-dashboard-grid {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    align-items: stretch !important;
+    display: grid !important;
+    grid-template-columns: 250px minmax(0, 1fr) 300px !important;
     gap: 1.25rem !important;
+    align-items: start !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     box-sizing: border-box !important;
 }
 
-/* Panel A: Left Document Repository Sidebar (Compact) */
+/* Panel A: Left Document Repository Sidebar (250px) */
 .dm-panel-sidebar-left {
-    flex: 0 0 260px !important;
-    width: 260px !important;
-    max-width: 280px !important;
-    min-width: 240px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    box-sizing: border-box !important;
-}
-
-/* Panel B: Center AI Conversation Canvas (EXPANSIVE) */
-.dm-panel-center-canvas {
-    flex: 1 1 0% !important;
+    width: 100% !important;
     min-width: 0 !important;
-    width: auto !important;
+    max-width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
     box-sizing: border-box !important;
 }
 
-/* Panel C: Right Source Intelligence (LOCKED ON THE RIGHT SIDE) */
+/* Panel B: Center AI Conversation Canvas (Takes largest share of width) */
+.dm-panel-center-canvas {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+}
+
+/* Panel C: Right Source Intelligence (Locked on Right Side, Sticky) */
 .dm-panel-sidebar-right {
-    flex: 0 0 320px !important;
-    width: 320px !important;
-    max-width: 360px !important;
-    min-width: 280px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
     box-sizing: border-box !important;
+    position: sticky !important;
+    top: 0.75rem !important;
 }
 
-/* Wide screen enhancements */
-@media (min-width: 1400px) {
-    .dm-panel-sidebar-left {
-        flex: 0 0 280px !important;
-        width: 280px !important;
-    }
-    .dm-panel-sidebar-right {
-        flex: 0 0 350px !important;
-        width: 350px !important;
-    }
+/* Medium Tablets & Smaller Laptops (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
     .dm-dashboard-grid {
+        grid-template-columns: 220px minmax(0, 1fr) 260px !important;
+        gap: 0.85rem !important;
+    }
+}
+
+/* Ultra-Wide Displays (>= 1500px): Proportional expansion */
+@media (min-width: 1500px) {
+    .dm-dashboard-grid {
+        grid-template-columns: 270px minmax(0, 1fr) 340px !important;
         gap: 1.5rem !important;
     }
 }
 
-/* Mobile & Extra Small Screens (< 768px): Segmented Tab View */
+/* Mobile & Extra Small Screens (< 768px): Responsive Segmented Tab Switcher */
 @media (max-width: 767.98px) {
     .dm-dashboard-grid {
-        flex-direction: column !important;
-        flex-wrap: wrap !important;
-        gap: 1rem !important;
+        display: block !important;
+        width: 100% !important;
     }
     .dm-panel-sidebar-left,
     .dm-panel-center-canvas,
@@ -585,7 +586,7 @@ h1, h2, h3, h4, h5, h6 {
         display: none !important;
         width: 100% !important;
         max-width: 100% !important;
-        flex: 1 1 100% !important;
+        margin-bottom: 1rem !important;
     }
     .dm-column-panel.active-mobile-panel {
         display: flex !important;
@@ -599,6 +600,9 @@ h1, h2, h3, h4, h5, h6 {
     .dm-mobile-tabs-container {
         display: none !important;
     }
+    .dm-column-panel {
+        display: flex !important;
+    }
 }
 
 .dm-panel-card {
@@ -608,9 +612,9 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: var(--dm-shadow-md);
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 125px);
-    min-height: 680px;
-    max-height: 940px;
+    height: calc(100vh - 110px);
+    min-height: 560px;
+    max-height: 920px;
     overflow: hidden;
     position: relative;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
