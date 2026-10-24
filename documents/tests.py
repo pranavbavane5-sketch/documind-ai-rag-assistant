@@ -342,6 +342,14 @@ class UnauthenticatedSecurityTests(TestCase):
         self.assertContains(response, "AI &bull; RAG &bull; Smart Learning")
         self.assertContains(response, "Get Started")
         self.assertContains(response, "Create Account")
+        self.assertContains(response, 'href="/admin/"')
+        self.assertContains(response, "Admin")
+
+    def test_admin_nav_link_opens_django_admin(self):
+        """Admin nav button target ('/admin/') opens Django's admin login page for unauthenticated visitors."""
+        response = self.client.get('/admin/', follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Django administration")
 
     def test_welcome_get_started_navigates_to_login_page(self):
         """Get Started button target ('/accounts/login/') successfully loads the Sign In page."""
