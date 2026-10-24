@@ -237,8 +237,8 @@
         </div>
     </section>
 
-    <!-- Mobile Segmented View Navigation (visible only on small screens < 992px) -->
-    <div class="container-fluid px-3 pt-3 d-lg-none">
+    <!-- Mobile Segmented View Navigation (visible only on small screens < 860px) -->
+    <div class="container-fluid px-3 pt-3 dm-mobile-tabs-container d-md-none">
         <div class="dm-mobile-tabs" role="tablist">
             <button type="button" class="dm-mobile-tab-btn active" id="tabBtnDocs" data-target="colDocs">
                 <i class="bi bi-folder2-open"></i> Documents (<span id="dmMobileDocCount">{{ documents|length }}</span>)
@@ -252,14 +252,14 @@
         </div>
     </div>
 
-    <!-- Main Workspace Dashboard: 3 Balanced Panels on Desktop -->
-    <main class="container-fluid px-3 px-xl-4 dm-studio-workspace" id="dmStudioWorkspace">
+    <!-- Main Workspace Dashboard: 3-Panel Side-by-Side Studio Layout -->
+    <main class="container-fluid px-2 px-md-3 px-xl-4 dm-studio-workspace" id="dmStudioWorkspace">
         <div class="row g-3 dm-dashboard-grid">
             
             <!-- ========================================================= -->
-            <!-- 1. PANEL A: Document Studio (Left Panel)                   -->
+            <!-- 1. PANEL A: Document Studio (Left Panel - Compact)         -->
             <!-- ========================================================= -->
-            <div class="col-lg-3 col-xl-3 dm-column-panel active-mobile-panel" id="colDocs">
+            <div class="col-12 col-md-3 col-xl-2 dm-column-panel active-mobile-panel" id="colDocs">
                 <div class="dm-panel-card">
                     
                     <!-- Panel Header -->
@@ -368,9 +368,9 @@
             </div>
 
             <!-- ========================================================= -->
-            <!-- 2. PANEL B: AI Conversation Workspace (Center Panel)       -->
+            <!-- 2. PANEL B: AI Conversation Workspace (Center Panel - WIDE)-->
             <!-- ========================================================= -->
-            <div class="col-lg-6 col-xl-6 dm-column-panel" id="colChat">
+            <div class="col-12 col-md-6 col-xl-7 dm-column-panel" id="colChat">
                 <div class="dm-panel-card">
                     
                     <!-- Panel Header -->
@@ -693,9 +693,9 @@
             </div>
 
             <!-- ========================================================= -->
-            <!-- 3. PANEL C: Source Intelligence & Evidence (Right Panel)   -->
+            <!-- 3. PANEL C: Source Intelligence & Evidence (Right Sidebar) -->
             <!-- ========================================================= -->
-            <div class="col-lg-3 col-xl-3 dm-column-panel" id="colSources">
+            <div class="col-12 col-md-3 col-xl-3 dm-column-panel" id="colSources">
                 <div class="dm-panel-card">
                     
                     <!-- Panel Header -->

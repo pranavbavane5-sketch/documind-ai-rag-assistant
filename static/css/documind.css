@@ -501,20 +501,74 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
 }
 
-@media (max-width: 991.98px) {
+/* ==========================================================================
+   3-Panel Studio Workspace Layout (Responsive Grid with Expansive Center)
+   ========================================================================== */
+.dm-studio-workspace {
+    padding: 1rem 0 2rem;
+    max-width: 100%;
+}
+
+.dm-dashboard-grid {
+    width: 100%;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Mobile & Small Screens (< 860px): Segmented 1-panel view with tabs */
+@media (max-width: 859.98px) {
     .dm-column-panel {
         display: none !important;
+        width: 100% !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
     }
     .dm-column-panel.active-mobile-panel {
         display: block !important;
     }
+    .dm-mobile-tabs-container {
+        display: block !important;
+    }
 }
 
-/* ==========================================================================
-   3-Panel Studio Workspace
-   ========================================================================== */
-.dm-studio-workspace {
-    padding: 1.5rem 0 2.5rem;
+/* Tablets, Laptops & Desktops (>= 860px): Strict 3-Column Side-by-Side Layout */
+@media (min-width: 860px) {
+    .dm-mobile-tabs-container {
+        display: none !important;
+    }
+    .dm-dashboard-grid {
+        display: grid !important;
+        /* Left: 260px, Center (AI Conversation Canvas): 1fr expansive, Right: 300px */
+        grid-template-columns: 260px minmax(0, 1fr) 300px !important;
+        gap: 1rem !important;
+        align-items: stretch;
+    }
+    .dm-column-panel {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        flex: none !important;
+    }
+}
+
+/* Standard Laptops & Desktops (>= 1200px): Wider Center Canvas */
+@media (min-width: 1200px) {
+    .dm-dashboard-grid {
+        /* Left: 275px, Center: Massive 1fr, Right: 330px */
+        grid-template-columns: 275px minmax(0, 1fr) 330px !important;
+        gap: 1.25rem !important;
+    }
+}
+
+/* Ultra-Wide Displays (>= 1500px): Proportional Studio Layout */
+@media (min-width: 1500px) {
+    .dm-dashboard-grid {
+        /* Left: 290px, Center: Huge 1fr, Right: 360px */
+        grid-template-columns: 290px minmax(0, 1fr) 360px !important;
+        gap: 1.5rem !important;
+    }
 }
 
 .dm-panel-card {
@@ -524,7 +578,9 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: var(--dm-shadow-md);
     display: flex;
     flex-direction: column;
-    height: 720px;
+    height: calc(100vh - 125px);
+    min-height: 680px;
+    max-height: 940px;
     overflow: hidden;
     position: relative;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -1000,7 +1056,7 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 14px 14px 3px 14px;
     font-size: 0.88rem;
     line-height: 1.5;
-    max-width: 82%;
+    max-width: 86%;
     word-break: break-word;
     box-shadow: var(--dm-shadow-sm);
 }
@@ -1010,8 +1066,8 @@ h1, h2, h3, h4, h5, h6 {
     background-color: var(--dm-ai-card-bg);
     border: 1px solid var(--dm-border-subtle);
     border-radius: 14px 14px 14px 3px;
-    padding: 0.95rem 1.05rem;
-    max-width: 88%;
+    padding: 1rem 1.25rem;
+    max-width: 94%;
     box-shadow: var(--dm-shadow-md);
     display: flex;
     flex-direction: column;
