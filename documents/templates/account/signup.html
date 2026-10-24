@@ -5,322 +5,735 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Account — DocuMind AI Document Intelligence</title>
+    <title>Sign Up — DocuMind AI | Document Intelligence Studio</title>
     
-    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <!-- Modern Typography: Plus Jakarta Sans & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Bootstrap 5 CSS & Icons -->
+    <!-- Bootstrap 5 CSS & Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     
-    <!-- DocuMind AI Theme Stylesheet -->
+    <!-- DocuMind Base Theme -->
     <link href="{% static 'css/documind.css' %}?v={% now 'U' %}" rel="stylesheet">
 
     <style>
-        .dm-auth-viewport {
+        :root {
+            --dm-auth-bg: #070a12;
+            --dm-auth-card-bg: rgba(15, 23, 42, 0.75);
+            --dm-auth-border: rgba(255, 255, 255, 0.08);
+            --dm-auth-primary: #6366f1;
+            --dm-auth-accent: #06b6d4;
+        }
+
+        body.documind-app {
+            background-color: var(--dm-auth-bg);
+            color: #f1f5f9;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        /* Split-screen Master Layout */
+        .dm-auth-split-wrapper {
             min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2.5rem 1rem;
-            background: radial-gradient(circle at 50% 20%, rgba(99, 102, 241, 0.15) 0%, rgba(15, 23, 42, 0.95) 75%), #090d16;
+            width: 100%;
+        }
+
+        /* -------------------------------------------------------------
+           LEFT SHOWCASE PANEL
+           ------------------------------------------------------------- */
+        .dm-auth-showcase-panel {
+            flex: 1.15;
             position: relative;
+            background: radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.28) 0%, transparent 45%),
+                        radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.22) 0%, transparent 45%),
+                        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 60%),
+                        #080c16;
+            border-right: 1px solid var(--dm-auth-border);
+            padding: 4rem 4.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
             overflow: hidden;
         }
-        .dm-auth-orb {
+
+        .dm-auth-showcase-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: 
+                radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px),
+                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 32px 32px, 96px 96px, 96px 96px;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .dm-auth-glow-orb {
             position: absolute;
             border-radius: 50%;
-            filter: blur(80px);
+            filter: blur(100px);
             pointer-events: none;
             opacity: 0.35;
         }
-        .dm-auth-orb-1 {
-            width: 340px;
-            height: 340px;
+        .dm-auth-glow-orb-1 {
+            width: 400px;
+            height: 400px;
             background: linear-gradient(135deg, #6366f1, #3b82f6);
-            top: 5%;
-            right: 12%;
+            top: -10%;
+            left: -10%;
         }
-        .dm-auth-orb-2 {
-            width: 300px;
-            height: 300px;
+        .dm-auth-glow-orb-2 {
+            width: 360px;
+            height: 360px;
             background: linear-gradient(135deg, #06b6d4, #10b981);
-            bottom: 5%;
-            left: 10%;
+            bottom: -10%;
+            right: -5%;
         }
-        .dm-auth-card {
-            width: 100%;
-            max-width: 480px;
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 1.25rem;
-            padding: 2.25rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(99, 102, 241, 0.12);
+
+        .dm-showcase-content {
             position: relative;
             z-index: 10;
         }
+
+        .dm-showcase-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            background: rgba(99, 102, 241, 0.12);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #a5b4fc;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .dm-showcase-headline {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.035em;
+            margin-top: 1.5rem;
+            margin-bottom: 1.25rem;
+            background: linear-gradient(135deg, #ffffff 40%, #93c5fd 80%, #c4b5fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .dm-showcase-subtitle {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #94a3b8;
+            max-width: 520px;
+            margin-bottom: 2.75rem;
+        }
+
+        .dm-feature-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
+            max-width: 540px;
+        }
+
+        .dm-feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.25rem;
+            padding: 1.1rem 1.35rem;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 1rem;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .dm-feature-item:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateX(6px);
+            background: rgba(15, 23, 42, 0.85);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .dm-feature-icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+        .dm-feature-icon-privacy {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(59, 130, 246, 0.2));
+            color: #818cf8;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+        .dm-feature-icon-speed {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(16, 185, 129, 0.2));
+            color: #22d3ee;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+        }
+        .dm-feature-icon-exam {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(234, 88, 12, 0.2));
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .dm-feature-title {
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.2rem;
+        }
+        .dm-feature-desc {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            line-height: 1.45;
+            margin-bottom: 0;
+        }
+
+        .dm-showcase-footer {
+            position: relative;
+            z-index: 10;
+            margin-top: 2rem;
+        }
+        .dm-trust-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 1.1rem;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+        }
+        .dm-pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: dmPulse 2s infinite;
+        }
+        @keyframes dmPulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* -------------------------------------------------------------
+           RIGHT AUTHENTICATION FORM PANEL
+           ------------------------------------------------------------- */
+        .dm-auth-form-panel {
+            flex: 0.85;
+            min-width: 480px;
+            max-width: 620px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3.5rem 4rem;
+            background: #090d16;
+            position: relative;
+            z-index: 5;
+        }
+
+        .dm-auth-card-inner {
+            width: 100%;
+            max-width: 430px;
+        }
+
         .dm-btn-google-oauth {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.75rem;
+            gap: 0.85rem;
             width: 100%;
-            padding: 0.75rem 1.25rem;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 0.75rem;
+            padding: 0.8rem 1.25rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 0.85rem;
             color: #f8fafc;
             font-size: 0.95rem;
             font-weight: 600;
-            transition: all 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
             cursor: pointer;
             text-decoration: none;
         }
         .dm-btn-google-oauth:hover {
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.1);
             border-color: rgba(99, 102, 241, 0.5);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25), 0 0 25px rgba(99, 102, 241, 0.2);
+            color: #ffffff;
         }
+
         .dm-auth-divider {
             display: flex;
             align-items: center;
             text-align: center;
             margin: 1.5rem 0;
-            color: rgba(148, 163, 184, 0.7);
-            font-size: 0.8rem;
+            color: rgba(148, 163, 184, 0.6);
+            font-size: 0.78rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.06em;
+            font-weight: 600;
         }
         .dm-auth-divider::before,
         .dm-auth-divider::after {
             content: '';
             flex: 1;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
         }
         .dm-auth-divider span {
-            padding: 0 0.85rem;
+            padding: 0 1rem;
         }
-        .dm-input-group-custom {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 0.75rem;
-            overflow: hidden;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+        .dm-input-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 0.45rem;
+            display: block;
         }
-        .dm-input-group-custom:focus-within {
+
+        .dm-input-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 0.85rem;
+            transition: all 0.2s ease;
+        }
+        .dm-input-box:focus-within {
             border-color: #6366f1;
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+            background: rgba(20, 30, 55, 0.8);
         }
-        .dm-input-group-custom .input-group-text {
+
+        .dm-input-icon {
+            padding-left: 1.1rem;
+            color: #64748b;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            pointer-events: none;
+        }
+        .dm-input-box:focus-within .dm-input-icon {
+            color: #818cf8;
+        }
+
+        .dm-input-field {
+            width: 100%;
             background: transparent;
             border: none;
-            color: #94a3b8;
-            padding-left: 1rem;
-        }
-        .dm-input-group-custom .form-control {
-            background: transparent;
-            border: none;
-            color: #f1f5f9;
+            color: #f8fafc;
             padding: 0.75rem 1rem;
             font-size: 0.95rem;
-        }
-        .dm-input-group-custom .form-control:focus {
-            box-shadow: none;
             outline: none;
         }
-        .dm-input-group-custom .form-control::placeholder {
+        .dm-input-field::placeholder {
             color: #64748b;
         }
-        .dm-btn-primary-auth {
-            width: 100%;
-            padding: 0.8rem 1.5rem;
-            border-radius: 0.75rem;
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+
+        .dm-pwd-toggle-btn {
+            background: transparent;
             border: none;
-            color: #ffffff;
-            font-weight: 600;
-            font-size: 0.95rem;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
-            transition: all 0.2s ease;
+            color: #64748b;
+            padding: 0 1rem;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 1.1rem;
+            transition: color 0.15s ease;
         }
-        .dm-btn-primary-auth:hover {
-            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
-            transform: translateY(-1px);
+        .dm-pwd-toggle-btn:hover {
+            color: #f1f5f9;
         }
+
         .dm-role-notice-box {
             background: rgba(99, 102, 241, 0.08);
-            border: 1px dashed rgba(99, 102, 241, 0.25);
-            border-radius: 0.75rem;
+            border: 1px dashed rgba(99, 102, 241, 0.3);
+            border-radius: 0.85rem;
             padding: 0.75rem 1rem;
             font-size: 0.8rem;
             color: #cbd5e1;
             display: flex;
             align-items: flex-start;
-            gap: 0.6rem;
+            gap: 0.65rem;
+        }
+
+        .dm-btn-primary-glow {
+            width: 100%;
+            padding: 0.85rem 1.5rem;
+            border-radius: 0.85rem;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%);
+            border: none;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: -0.01em;
+            box-shadow: 0 4px 18px rgba(99, 102, 241, 0.35);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .dm-btn-primary-glow:hover {
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+            box-shadow: 0 6px 24px rgba(99, 102, 241, 0.48);
+            transform: translateY(-2px);
+            color: #ffffff;
+        }
+
+        .dm-alert-box {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.28);
+            border-radius: 0.85rem;
+            padding: 0.75rem 1rem;
+            color: #fca5a5;
+            font-size: 0.85rem;
+        }
+
+        .dm-auth-mobile-header {
+            display: none;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        @media (max-width: 1024px) {
+            .dm-auth-showcase-panel {
+                padding: 3rem 2.5rem;
+            }
+            .dm-showcase-headline {
+                font-size: 2.35rem;
+            }
+            .dm-auth-form-panel {
+                padding: 3rem 2.5rem;
+                min-width: 420px;
+            }
+        }
+
+        @media (max-width: 860px) {
+            .dm-auth-split-wrapper {
+                flex-direction: column;
+            }
+            .dm-auth-showcase-panel {
+                display: none;
+            }
+            .dm-auth-form-panel {
+                flex: 1;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                padding: 3rem 1.5rem;
+            }
+            .dm-auth-mobile-header {
+                display: block;
+            }
         }
     </style>
 </head>
 <body class="documind-app">
 
-    <div class="dm-auth-viewport">
-        <!-- Ambient Background Glows -->
-        <div class="dm-auth-orb dm-auth-orb-1"></div>
-        <div class="dm-auth-orb dm-auth-orb-2"></div>
+    <div class="dm-auth-split-wrapper">
+        
+        <!-- ========================================================= -->
+        <!-- 1. LEFT SHOWCASE PANEL: Brand, Mission & Features        -->
+        <!-- ========================================================= -->
+        <aside class="dm-auth-showcase-panel">
+            <div class="dm-auth-glow-orb dm-auth-glow-orb-1"></div>
+            <div class="dm-auth-glow-orb dm-auth-glow-orb-2"></div>
 
-        <div class="dm-auth-card">
-            
-            <!-- Brand Header -->
-            <div class="text-center mb-4">
-                <a href="/" class="d-inline-flex align-items-center gap-2 text-decoration-none mb-3">
-                    <div class="dm-brand-symbol" style="width: 42px; height: 42px;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M14 2V8H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <circle cx="12" cy="14" r="2" fill="#60A5FA"/>
-                            <path d="M12 12V10M12 18V16M10 14H8M16 14H14" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round"/>
-                        </svg>
-                    </div>
-                    <span class="dm-brand-name fs-4">DocuMind<span class="dm-brand-glow">AI</span></span>
-                </a>
-                <h1 class="h4 text-light fw-bold mb-1">Create Your Account</h1>
-                <p class="text-secondary small mb-0">Join the AI-powered Document Intelligence Studio</p>
-            </div>
-
-            <!-- Messages / Flash Alerts -->
-            {% if messages %}
-                <div class="mb-3">
-                    {% for message in messages %}
-                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show small py-2 px-3 border-0" role="alert" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3) !important; color: #fca5a5;">
-                            <i class="bi bi-info-circle-fill me-1"></i> {{ message }}
-                            <button type="button" class="btn-close btn-close-white small p-2" data-bs-dismiss="alert" aria-label="Close"></button>
+            <div class="dm-showcase-content">
+                
+                <!-- Brand Symbol -->
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <a href="/" class="d-flex align-items-center gap-2 text-decoration-none">
+                        <div class="dm-brand-symbol" style="width: 44px; height: 44px;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M14 2V8H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle cx="12" cy="14" r="2" fill="#60A5FA"/>
+                                <path d="M12 12V10M12 18V16M10 14H8M16 14H14" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
                         </div>
-                    {% endfor %}
+                        <span class="dm-brand-name fs-4">DocuMind<span class="dm-brand-glow">AI</span></span>
+                    </a>
+                    <span class="dm-showcase-badge">Join Studio</span>
                 </div>
-            {% endif %}
 
-            <!-- Form Validation Errors -->
-            {% if form.non_field_errors %}
-                <div class="alert alert-danger small py-2 px-3 border-0 mb-3" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3) !important; color: #fca5a5;">
-                    {% for error in form.non_field_errors %}
-                        <div><i class="bi bi-shield-x me-1"></i> {{ error }}</div>
-                    {% endfor %}
+                <!-- Bold Headline -->
+                <h1 class="dm-showcase-headline">
+                    Build your personal<br>knowledge space.
+                </h1>
+                
+                <p class="dm-showcase-subtitle">
+                    Upload your university study material, syllabus PDFs, and research notes. Experience AI-grounded retrieval without hallucination.
+                </p>
+
+                <!-- Three Key Feature Highlights -->
+                <div class="dm-feature-stack">
+                    
+                    <!-- Feature 1: Multi-tenant Privacy -->
+                    <div class="dm-feature-item">
+                        <div class="dm-feature-icon-box dm-feature-icon-privacy">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+                        <div>
+                            <div class="dm-feature-title">Isolated Student Knowledge Scopes</div>
+                            <p class="dm-feature-desc">Your uploaded PDFs, text files, and vector chunks are private and accessible exclusively through your student login.</p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 2: Instant Vector Embedding -->
+                    <div class="dm-feature-item">
+                        <div class="dm-feature-icon-box dm-feature-icon-speed">
+                            <i class="bi bi-lightning-charge-fill"></i>
+                        </div>
+                        <div>
+                            <div class="dm-feature-title">Sub-Second Vector Indexing</div>
+                            <p class="dm-feature-desc">Automatic chunking, dense semantic vector generation, and ChromaDB persistence in real-time without page reloads.</p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 3: Exam Readiness -->
+                    <div class="dm-feature-item">
+                        <div class="dm-feature-icon-box dm-feature-icon-exam">
+                            <i class="bi bi-award-fill"></i>
+                        </div>
+                        <div>
+                            <div class="dm-feature-title">Tailored Exam Answers & Diagrams</div>
+                            <p class="dm-feature-desc">Generate 2-mark, 5-mark, and 10-mark structured answers with Mermaid flowcharts grounded directly in your syllabus.</p>
+                        </div>
+                    </div>
+
                 </div>
-            {% endif %}
 
-            <!-- 1. Google OAuth Quick Registration -->
-            <form action="{% provider_login_url 'google' %}" method="post" class="mb-2">
-                {% csrf_token %}
-                <button type="submit" class="dm-btn-google-oauth" id="btnGoogleSignUp" title="Sign up seamlessly with Google">
-                    <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
-                    </svg>
-                    <span>Sign up with Google</span>
-                </button>
-            </form>
-
-            <div class="dm-auth-divider">
-                <span>or register with email</span>
             </div>
 
-            <!-- 2. Registration Form -->
-            <form method="post" action="{% url 'account_signup' %}" id="signupForm">
-                {% csrf_token %}
-                {% if redirect_field_value %}
-                    <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+            <!-- Footer Trust / Security Assurance -->
+            <div class="dm-showcase-footer">
+                <div class="dm-trust-pill">
+                    <span class="dm-pulse-dot"></span>
+                    <span>Role-Based Access Control &bull; Student Default Access</span>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- ========================================================= -->
+        <!-- 2. RIGHT AUTHENTICATION PANEL: Registration Form Card     -->
+        <!-- ========================================================= -->
+        <main class="dm-auth-form-panel">
+            <div class="dm-auth-card-inner">
+
+                <!-- Mobile Only Branding Header -->
+                <div class="dm-auth-mobile-header">
+                    <a href="/" class="d-inline-flex align-items-center gap-2 text-decoration-none mb-3">
+                        <div class="dm-brand-symbol" style="width: 38px; height: 38px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M14 2V8H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle cx="12" cy="14" r="2" fill="#60A5FA"/>
+                            </svg>
+                        </div>
+                        <span class="dm-brand-name fs-4">DocuMind<span class="dm-brand-glow">AI</span></span>
+                    </a>
+                </div>
+
+                <!-- Form Header -->
+                <div class="mb-4">
+                    <h2 class="h3 fw-bold text-light mb-1">Create account</h2>
+                    <p class="text-secondary small mb-0">Join the AI-powered Document Intelligence Studio</p>
+                </div>
+
+                <!-- Django Messages / Flash Alerts -->
+                {% if messages %}
+                    <div class="mb-3">
+                        {% for message in messages %}
+                            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show small py-2 px-3 border-0 dm-alert-box mb-2" role="alert">
+                                <i class="bi bi-info-circle-fill me-1"></i> {{ message }}
+                                <button type="button" class="btn-close btn-close-white small p-2" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
                 {% endif %}
 
-                <!-- Username Field -->
-                <div class="mb-3">
-                    <label class="form-label text-secondary small fw-semibold" for="id_username">Username</label>
-                    <div class="input-group dm-input-group-custom">
-                        <span class="input-group-text"><i class="bi bi-at"></i></span>
-                        <input type="text" name="username" id="id_username" class="form-control" placeholder="Choose a username" required value="{{ form.username.value|default:'' }}">
+                <!-- Form Non-Field Errors -->
+                {% if form.non_field_errors %}
+                    <div class="dm-alert-box mb-3">
+                        {% for error in form.non_field_errors %}
+                            <div><i class="bi bi-shield-x me-1"></i> {{ error }}</div>
+                        {% endfor %}
                     </div>
-                    {% if form.username.errors %}
-                        <div class="text-danger small mt-1">{{ form.username.errors|striptags }}</div>
+                {% endif %}
+
+                <!-- 1. Google OAuth Quick Registration -->
+                <form action="{% provider_login_url 'google' %}" method="post" class="mb-3">
+                    {% csrf_token %}
+                    <button type="submit" class="dm-btn-google-oauth" id="btnGoogleSignUp" title="Sign up seamlessly with Google">
+                        <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+                        </svg>
+                        <span>Sign up with Google</span>
+                    </button>
+                </form>
+
+                <!-- Divider -->
+                <div class="dm-auth-divider">
+                    <span>or register with credentials</span>
+                </div>
+
+                <!-- 2. Registration Form -->
+                <form method="post" action="{% url 'account_signup' %}" id="signupForm">
+                    {% csrf_token %}
+                    {% if redirect_field_value %}
+                        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
                     {% endif %}
-                </div>
 
-                <!-- Email Field -->
-                <div class="mb-3">
-                    <label class="form-label text-secondary small fw-semibold" for="id_email">Email Address</label>
-                    <div class="input-group dm-input-group-custom">
-                        <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
-                        <input type="email" name="email" id="id_email" class="form-control" placeholder="name@domain.com" required value="{{ form.email.value|default:'' }}">
+                    <!-- Username Field -->
+                    <div class="mb-3">
+                        <label class="dm-input-label" for="id_username">Username</label>
+                        <div class="dm-input-box">
+                            <span class="dm-input-icon"><i class="bi bi-at"></i></span>
+                            <input type="text" name="username" id="id_username" class="dm-input-field" placeholder="Choose a username" required value="{{ form.username.value|default:'' }}">
+                        </div>
+                        {% if form.username.errors %}
+                            <div class="text-danger small mt-1 ps-1">{{ form.username.errors|striptags }}</div>
+                        {% endif %}
                     </div>
-                    {% if form.email.errors %}
-                        <div class="text-danger small mt-1">{{ form.email.errors|striptags }}</div>
-                    {% endif %}
-                </div>
 
-                <!-- Password 1 Field -->
-                <div class="mb-3">
-                    <label class="form-label text-secondary small fw-semibold" for="id_password1">Password</label>
-                    <div class="input-group dm-input-group-custom">
-                        <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-                        <input type="password" name="password1" id="id_password1" class="form-control" placeholder="Create a strong password" required>
+                    <!-- Email Field -->
+                    <div class="mb-3">
+                        <label class="dm-input-label" for="id_email">Email Address</label>
+                        <div class="dm-input-box">
+                            <span class="dm-input-icon"><i class="bi bi-envelope-fill"></i></span>
+                            <input type="email" name="email" id="id_email" class="dm-input-field" placeholder="student@university.edu" required value="{{ form.email.value|default:'' }}">
+                        </div>
+                        {% if form.email.errors %}
+                            <div class="text-danger small mt-1 ps-1">{{ form.email.errors|striptags }}</div>
+                        {% endif %}
                     </div>
-                    {% if form.password1.errors %}
-                        <div class="text-danger small mt-1">{{ form.password1.errors|striptags }}</div>
-                    {% endif %}
-                </div>
 
-                <!-- Password 2 Field (Confirm) -->
-                <div class="mb-3">
-                    <label class="form-label text-secondary small fw-semibold" for="id_password2">Confirm Password</label>
-                    <div class="input-group dm-input-group-custom">
-                        <span class="input-group-text"><i class="bi bi-check-circle-fill"></i></span>
-                        <input type="password" name="password2" id="id_password2" class="form-control" placeholder="Re-type password" required>
+                    <!-- Password 1 Field -->
+                    <div class="mb-3">
+                        <label class="dm-input-label" for="id_password1">Password</label>
+                        <div class="dm-input-box">
+                            <span class="dm-input-icon"><i class="bi bi-lock-fill"></i></span>
+                            <input type="password" name="password1" id="id_password1" class="dm-input-field" placeholder="Create a strong password" required>
+                            <button type="button" class="dm-pwd-toggle-btn" id="togglePasswordBtn1" title="Toggle password visibility">
+                                <i class="bi bi-eye" id="togglePasswordIcon1"></i>
+                            </button>
+                        </div>
+                        {% if form.password1.errors %}
+                            <div class="text-danger small mt-1 ps-1">{{ form.password1.errors|striptags }}</div>
+                        {% endif %}
                     </div>
-                    {% if form.password2.errors %}
-                        <div class="text-danger small mt-1">{{ form.password2.errors|striptags }}</div>
-                    {% endif %}
-                </div>
 
-                <!-- Role Notice Box (Principle of Least Privilege) -->
-                <div class="dm-role-notice-box mb-3">
-                    <i class="bi bi-mortarboard-fill text-primary fs-5 mt-1"></i>
-                    <div>
-                        <strong class="text-light">Student Role Provisioning:</strong>
-                        New registrations automatically receive personal student-level access. Administrator rights are provisioned exclusively through authorized server management.
+                    <!-- Password 2 Field (Confirm) -->
+                    <div class="mb-3">
+                        <label class="dm-input-label" for="id_password2">Confirm Password</label>
+                        <div class="dm-input-box">
+                            <span class="dm-input-icon"><i class="bi bi-check-circle-fill"></i></span>
+                            <input type="password" name="password2" id="id_password2" class="dm-input-field" placeholder="Re-type password" required>
+                            <button type="button" class="dm-pwd-toggle-btn" id="togglePasswordBtn2" title="Toggle password visibility">
+                                <i class="bi bi-eye" id="togglePasswordIcon2"></i>
+                            </button>
+                        </div>
+                        {% if form.password2.errors %}
+                            <div class="text-danger small mt-1 ps-1">{{ form.password2.errors|striptags }}</div>
+                        {% endif %}
                     </div>
+
+                    <!-- Role Notice Box (Least Privilege Assurance) -->
+                    <div class="dm-role-notice-box mb-4">
+                        <i class="bi bi-info-circle-fill text-primary mt-1"></i>
+                        <div>
+                            New accounts receive personal <strong>Student</strong> access. Administrative rights require authorized staff configuration via server management.
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="dm-btn-primary-glow" id="btnSubmitSignup">
+                        <span id="btnSubmitText">Create Student Account</span>
+                        <i class="bi bi-arrow-right-short fs-5" id="btnSubmitIcon"></i>
+                        <span class="spinner-border spinner-border-sm d-none" id="btnSubmitSpinner" role="status" aria-hidden="true"></span>
+                    </button>
+                </form>
+
+                <!-- Sign In Navigation Link -->
+                <div class="text-center pt-4 mt-4 border-top border-white border-opacity-10">
+                    <span class="text-secondary small">Already have an account?</span>
+                    <a href="{% url 'account_login' %}" class="small text-primary fw-bold text-decoration-none ms-1">Sign in here</a>
                 </div>
 
-                <!-- Submit Button -->
-                <button type="submit" class="dm-btn-primary-auth mb-3" id="btnSubmitSignup">
-                    <span>Create Free Student Account</span>
-                    <i class="bi bi-arrow-right-short ms-1 fs-5 align-middle"></i>
-                </button>
-            </form>
+                <div class="text-center mt-3">
+                    <a href="/" class="small text-secondary text-decoration-none">
+                        <i class="bi bi-arrow-left me-1"></i> Return to Studio
+                    </a>
+                </div>
 
-            <!-- Sign In Link -->
-            <div class="text-center pt-2 border-top border-secondary border-opacity-10">
-                <span class="text-secondary small">Already have an account?</span>
-                <a href="{% url 'account_login' %}" class="small text-primary fw-semibold text-decoration-none ms-1">Sign In</a>
             </div>
+        </main>
 
-            <div class="text-center mt-3">
-                <a href="/" class="small text-secondary text-decoration-none">
-                    <i class="bi bi-chevron-left me-1"></i> Back to Studio
-                </a>
-            </div>
-
-        </div>
     </div>
 
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Password Visibility Toggles
+        function setupToggle(btnId, inputId, iconId) {
+            const btn = document.getElementById(btnId);
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (btn && input && icon) {
+                btn.addEventListener('click', () => {
+                    const isPassword = input.type === 'password';
+                    input.type = isPassword ? 'text' : 'password';
+                    icon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
+                });
+            }
+        }
+        setupToggle('togglePasswordBtn1', 'id_password1', 'togglePasswordIcon1');
+        setupToggle('togglePasswordBtn2', 'id_password2', 'togglePasswordIcon2');
+
+        // Form Submit Loading State
+        const signupForm = document.getElementById('signupForm');
+        const btnSubmit = document.getElementById('btnSubmitSignup');
+        const btnText = document.getElementById('btnSubmitText');
+        const btnIcon = document.getElementById('btnSubmitIcon');
+        const btnSpinner = document.getElementById('btnSubmitSpinner');
+
+        if (signupForm && btnSubmit) {
+            signupForm.addEventListener('submit', () => {
+                if (signupForm.checkValidity()) {
+                    btnSubmit.disabled = true;
+                    btnText.textContent = "Creating Account...";
+                    btnIcon.classList.add('d-none');
+                    btnSpinner.classList.remove('d-none');
+                    signupForm.submit();
+                }
+            });
+        }
+    </script>
 </body>
 </html>
