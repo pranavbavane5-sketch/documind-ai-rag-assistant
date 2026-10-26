@@ -213,8 +213,9 @@ def get_chroma_collection():
 
     if chromadb is not None:
         try:
-            if _CHROMA_CLIENT is None:
+            if _CHROMA_CLIENT is None or getattr(_CHROMA_CLIENT, '_persist_path_custom', None) != persist_dir:
                 _CHROMA_CLIENT = chromadb.PersistentClient(path=persist_dir)
+                _CHROMA_CLIENT._persist_path_custom = persist_dir
             return _CHROMA_CLIENT.get_or_create_collection(
                 name="antigravity_documents_collection",
                 metadata={"description": "Antigravity Document Intelligence Vector Store"}
@@ -222,8 +223,9 @@ def get_chroma_collection():
         except Exception:
             pass
 
-    if _LIGHTWEIGHT_STORE is None:
+    if _LIGHTWEIGHT_STORE is None or getattr(_LIGHTWEIGHT_STORE, 'persist_dir_custom', None) != persist_dir:
         _LIGHTWEIGHT_STORE = LightweightVectorStore(persist_dir)
+        _LIGHTWEIGHT_STORE.persist_dir_custom = persist_dir
     return _LIGHTWEIGHT_STORE
 
 

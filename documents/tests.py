@@ -114,7 +114,7 @@ class RAGPipelineTests(TestCase):
             self.assertTrue(doc.is_processed)
             self.assertEqual(doc.chunk_count, chunks_count)
 
-            retrieved = retrieve_relevant_chunks("What mechanism do Transformers use?", top_k=2)
+            retrieved = retrieve_relevant_chunks("What mechanism do Transformers use?", top_k=2, allowed_doc_ids=[doc.id])
             self.assertGreater(len(retrieved), 0)
             top_snippet = retrieved[0]
             self.assertEqual(top_snippet['filename'], "ai_intro.txt")
@@ -302,36 +302,45 @@ class ExamModeTests(TestCase):
 
 
 class UnauthenticatedSecurityTests(TestCase):
-    """Verifies that unauthenticated requests cannot access protected operations."""
+    """Verifies that unauthenticated guest requests have direct access to dashboard without login."""
 
     def setUp(self):
         self.client = Client()
 
-    def test_unauthenticated_api_upload_denied(self):
-        response = self.client.post(reverse('api_upload'), {})
-        self.assertEqual(response.status_code, 401)
-        self.assertIn('Authentication required', response.json().get('error', ''))
+    def test_unauthenticated_dashboard_direct_access(self):
+        """Guests can directly access the dashboard without being forced to log in."""
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "DocuMind")
+        self.assertContains(response, "Guest Mode")
 
-    def test_unauthenticated_api_ask_denied(self):
-        response = self.client.post(
-            reverse('api_ask'),
-            data='{"query": "Hello?"}',
-            content_type="application/json"
-        )
-        self.assertEqual(response.status_code, 401)
+    def test_unauthenticated_api_upload_allowed(self):
+        """Guests can upload documents directly."""
+        file = SimpleUploadedFile("guest_notes.txt", b"Photosynthesis is the process used by plants.", content_type="text/plain")
+        response = self.client.post(reverse('api_upload'), {'document': file})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json().get('success'))
+        doc_id = response.json().get('document', {}).get('id')
+        if doc_id:
+            doc = Document.objects.filter(id=doc_id).first()
+            if doc:
+                delete_document_from_index(doc)
+                doc.delete()
 
     def test_unauthenticated_admin_dashboard_redirects_to_login(self):
+        """Admin operations remain protected."""
         response = self.client.get(reverse('admin_dashboard'))
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.url.startswith('/?next=') or '/login' in response.url)
 
     def test_unauthenticated_profile_redirects_to_login(self):
+        """User profile remains protected."""
         response = self.client.get(reverse('profile_view'))
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.url.startswith('/?next=') or '/login' in response.url)
 
     def test_root_unauthenticated_displays_welcome_screen(self):
-        """Root URL ('/') displays the polished public landing page for unauthenticated visitors."""
+        """Root URL ('/') displays the polished public landing page with no login buttons."""
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "DocuMind")
@@ -345,34 +354,28 @@ class UnauthenticatedSecurityTests(TestCase):
         self.assertContains(response, "Smart Summaries")
         self.assertContains(response, "Source Citations")
         self.assertContains(response, "Exam Preparation")
-        self.assertContains(response, "Sign In")
-        self.assertContains(response, "Sign Up")
+        self.assertContains(response, "Launch Studio")
+        # No login/signup buttons on the public page
+        self.assertNotContains(response, 'id="navBtnSignIn"')
+        self.assertNotContains(response, 'id="navBtnSignUp"')
         self.assertNotContains(response, 'id="navBtnAdmin"')
         self.assertNotContains(response, 'dm-btn-admin-nav')
 
-    def test_explore_button_points_to_protected_dashboard(self):
-        """Explore DocuMind AI button points to the dashboard which requires authentication for protected chat."""
+    def test_explore_button_points_directly_to_dashboard(self):
+        """Explore DocuMind AI button points directly to the dashboard with no login barrier."""
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'href="/dashboard/"')
-        # Following /dashboard/ unauthenticated redirects to login
+        # Accessing /dashboard/ directly loads successfully with 200 OK
         dash_response = self.client.get(reverse('dashboard'))
-        self.assertEqual(dash_response.status_code, 302)
-        self.assertTrue('/accounts/login/' in dash_response.url)
+        self.assertEqual(dash_response.status_code, 200)
+        self.assertContains(dash_response, "DocuMind")
 
     def test_admin_nav_link_opens_django_admin(self):
         """Standard Django admin ('/admin/') remains active and opens Django's admin login page for unauthenticated visitors."""
         response = self.client.get('/admin/', follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Django administration")
-
-    def test_welcome_get_started_navigates_to_login_page(self):
-        """Get Started button target ('/accounts/login/') successfully loads the Sign In page."""
-        response = self.client.get(reverse('account_login'))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Sign In")
-        self.assertContains(response, "Continue with Google")
-        self.assertContains(response, "Email or Username")
 
     def test_root_authenticated_redirects_to_dashboard(self):
         """Authenticated users visiting root URL ('/') are redirected directly to dashboard."""
@@ -381,12 +384,6 @@ class UnauthenticatedSecurityTests(TestCase):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse('dashboard'))
-
-    def test_dashboard_unauthenticated_redirects_to_login(self):
-        """Unauthenticated access to '/dashboard/' redirects to login page with next param."""
-        response = self.client.get(reverse('dashboard'))
-        self.assertEqual(response.status_code, 302)
-        self.assertTrue('/accounts/login/' in response.url or '/login' in response.url)
 
     def test_dashboard_authenticated_loads_successfully(self):
         """Authenticated access to '/dashboard/' renders the DocuMind AI dashboard."""
@@ -403,9 +400,10 @@ class UnauthenticatedSecurityTests(TestCase):
         self.client.force_login(user)
         response = self.client.get(reverse('logout'))
         self.assertRedirects(response, '/')
-        # Verify subsequent dashboard request requires authentication
+        # Verify subsequent dashboard request opens in guest mode without login
         dash_response = self.client.get(reverse('dashboard'))
-        self.assertEqual(dash_response.status_code, 302)
+        self.assertEqual(dash_response.status_code, 200)
+        self.assertContains(dash_response, "Guest Mode")
 
 
 class DocumentOwnershipIsolationTests(TestCase):

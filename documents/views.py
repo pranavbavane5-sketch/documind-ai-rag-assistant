@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from functools import wraps
 
+from django.db import models
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST, require_GET
@@ -63,7 +64,7 @@ def root_view(request, *args, **kwargs):
     Root application entry point (URL: '/').
     - If user is authenticated administrator: redirects directly to '/admin-dashboard/'.
     - If user is authenticated student: redirects directly to '/dashboard/'.
-    - If user is unauthenticated: renders the premium DocuMind AI Welcome screen with author attribution.
+    - If user is unauthenticated: renders the landing page.
     """
     if request.user.is_authenticated:
         is_admin = (
@@ -78,15 +79,17 @@ def root_view(request, *args, **kwargs):
     return render(request, 'documents/welcome.html')
 
 
-@login_required
 @ensure_csrf_cookie
 def dashboard_view(request):
     """
     Renders the modern DocuMind AI Document Intelligence Assistant dashboard.
-    Protected view: only authenticated students/admins can access.
-    Enforces document ownership: logged-in students see strictly their own documents.
+    Supports direct guest access without requiring authentication.
     """
-    documents = Document.objects.filter(user=request.user, is_processed=True)
+    if request.user.is_authenticated:
+        documents = Document.objects.filter(models.Q(user=request.user) | models.Q(user__isnull=True), is_processed=True)
+    else:
+        documents = Document.objects.filter(is_processed=True)
+
     user_vectors = sum(d.chunk_count for d in documents)
     total_vectors = get_total_indexed_vectors()
     model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-3.5-flash-lite')
@@ -124,11 +127,8 @@ def logout_view(request):
 def api_upload(request):
     """
     Asynchronous document upload endpoint supporting PDF and TXT files.
-    Enforces tenant isolation: links uploaded document strictly to request.user.
+    Allows both authenticated students and guest users to upload documents.
     """
-    if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'error': 'Authentication required. Please sign in.'}, status=401)
-
     uploaded_file = request.FILES.get('document')
     if not uploaded_file:
         return JsonResponse({'success': False, 'error': 'No file was provided.'}, status=400)
@@ -139,9 +139,12 @@ def api_upload(request):
 
     ext = Path(uploaded_file.name).suffix.lower()
 
-    # Create model record linked to owning user
+    # Link to authenticated user if signed in, or None for guests
+    user = request.user if request.user.is_authenticated else None
+
+    # Create model record
     doc = Document.objects.create(
-        user=request.user,
+        user=user,
         original_name=uploaded_file.name,
         file=uploaded_file,
         file_type=ext,
@@ -177,11 +180,8 @@ def api_upload(request):
 def api_ask(request):
     """
     Asynchronous chat query endpoint.
-    Retrieves semantic context strictly from documents owned by the requesting user.
+    Retrieves semantic context for authenticated users and guests alike.
     """
-    if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'error': 'Authentication required. Please sign in.'}, status=401)
-
     try:
         data = json.loads(request.body.decode('utf-8'))
         query = data.get('query', '').strip()
@@ -202,8 +202,12 @@ def api_ask(request):
     if not query:
         return JsonResponse({'success': False, 'error': 'Please enter a valid question.'}, status=400)
 
-    # Strictly retrieve documents owned by the student
-    user_docs = Document.objects.filter(user=request.user, is_processed=True)
+    # Retrieve documents accessible to the requester
+    if request.user.is_authenticated:
+        user_docs = Document.objects.filter(models.Q(user=request.user) | models.Q(user__isnull=True), is_processed=True)
+    else:
+        user_docs = Document.objects.filter(is_processed=True)
+
     user_doc_ids = list(user_docs.values_list('id', flat=True))
 
     if not user_doc_ids:
@@ -221,16 +225,17 @@ def api_ask(request):
         allowed_doc_ids=user_doc_ids
     )
 
-    # Record inquiry in query history
+    # Record inquiry in query history if authenticated
     try:
-        UserQueryHistory.objects.create(
-            user=request.user,
-            query_text=query,
-            answer_preview=(result.get('answer') or '')[:300],
-            sources_count=len(result.get('sources', [])),
-            has_context_match=result.get('has_context_match', True),
-            language=language
-        )
+        if request.user.is_authenticated:
+            UserQueryHistory.objects.create(
+                user=request.user,
+                query_text=query,
+                answer_preview=(result.get('answer') or '')[:300],
+                sources_count=len(result.get('sources', [])),
+                has_context_match=result.get('has_context_match', True),
+                language=language
+            )
     except Exception:
         pass
 
@@ -250,21 +255,21 @@ def api_ask(request):
 @require_POST
 def api_delete(request, document_id):
     """
-    Asynchronous deletion endpoint. Enforces strict ownership validation.
+    Asynchronous deletion endpoint. Supports guest and authenticated deletions.
     """
-    if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'error': 'Authentication required.'}, status=401)
-
     doc = get_object_or_404(Document, id=document_id)
-    is_admin = (
-        request.user.is_staff or 
-        request.user.is_superuser or 
-        getattr(getattr(request.user, 'profile', None), 'is_admin', False)
-    )
+    is_admin = False
+    if request.user.is_authenticated:
+        is_admin = (
+            request.user.is_staff or 
+            request.user.is_superuser or 
+            getattr(getattr(request.user, 'profile', None), 'is_admin', False)
+        )
 
-    # Ownership verification
-    if doc.user_id != request.user.id and not is_admin:
-        return JsonResponse({'success': False, 'error': 'Access denied: You do not own this document.'}, status=403)
+    # Ownership verification: allowed if owned by user, admin, or is a guest document
+    if doc.user_id is not None:
+        if not request.user.is_authenticated or (doc.user_id != request.user.id and not is_admin):
+            return JsonResponse({'success': False, 'error': 'Access denied: You do not own this document.'}, status=403)
 
     doc_name = doc.original_name
     delete_document_from_index(doc)
@@ -348,11 +353,8 @@ def api_save_key(request):
 def api_exam_generate_questions(request):
     """
     Asynchronous endpoint to generate university exam-oriented questions
-    and structured model answers strictly from the requesting user's documents.
+    and structured model answers for authenticated students and guest users.
     """
-    if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'error': 'Authentication required. Please sign in.'}, status=401)
-
     try:
         data = json.loads(request.body.decode('utf-8'))
         marks = data.get('marks', 'all')
@@ -371,7 +373,11 @@ def api_exam_generate_questions(request):
         settings.GEMINI_API_KEY = client_key
         os.environ['GEMINI_API_KEY'] = client_key
 
-    user_docs = Document.objects.filter(user=request.user, is_processed=True)
+    if request.user.is_authenticated:
+        user_docs = Document.objects.filter(models.Q(user=request.user) | models.Q(user__isnull=True), is_processed=True)
+    else:
+        user_docs = Document.objects.filter(is_processed=True)
+
     user_doc_ids = list(user_docs.values_list('id', flat=True))
 
     if not user_doc_ids:
@@ -404,11 +410,8 @@ def api_exam_generate_questions(request):
 def api_exam_generate_answer(request):
     """
     Generates an individual exam-ready model answer strictly tailored to the specified marks.
-    Grounded strictly in the user's owned study materials.
+    Grounded in available documents for authenticated users and guests.
     """
-    if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'error': 'Authentication required. Please sign in.'}, status=401)
-
     try:
         data = json.loads(request.body.decode('utf-8'))
         question = data.get('question', '').strip()
@@ -430,7 +433,11 @@ def api_exam_generate_answer(request):
     if not question:
         return JsonResponse({'success': False, 'error': 'Please provide a valid question.'}, status=400)
 
-    user_docs = Document.objects.filter(user=request.user, is_processed=True)
+    if request.user.is_authenticated:
+        user_docs = Document.objects.filter(models.Q(user=request.user) | models.Q(user__isnull=True), is_processed=True)
+    else:
+        user_docs = Document.objects.filter(is_processed=True)
+
     user_doc_ids = list(user_docs.values_list('id', flat=True))
 
     if not user_doc_ids:
@@ -460,10 +467,6 @@ def api_exam_generate_answer(request):
 
 @require_POST
 def upload_document(request):
-    if not request.user.is_authenticated:
-        messages.error(request, "Authentication required. Please sign in.")
-        return redirect(f"{settings.LOGIN_URL}?next={request.path}")
-
     uploaded_file = request.FILES.get('document')
     if not uploaded_file:
         messages.error(request, "No file selected.")
@@ -475,8 +478,9 @@ def upload_document(request):
         return redirect('dashboard')
 
     ext = Path(uploaded_file.name).suffix.lower()
+    user = request.user if request.user.is_authenticated else None
     doc = Document.objects.create(
-        user=request.user,
+        user=user,
         original_name=uploaded_file.name,
         file=uploaded_file,
         file_type=ext,
@@ -496,18 +500,18 @@ def upload_document(request):
 
 @require_POST
 def delete_document(request, document_id):
-    if not request.user.is_authenticated:
-        return redirect(settings.LOGIN_URL)
-
     doc = get_object_or_404(Document, id=document_id)
-    is_admin = (
-        request.user.is_staff or 
-        request.user.is_superuser or 
-        getattr(getattr(request.user, 'profile', None), 'is_admin', False)
-    )
-    if doc.user_id != request.user.id and not is_admin:
-        messages.error(request, "Access denied: You do not own this document.")
-        return redirect('dashboard')
+    is_admin = False
+    if request.user.is_authenticated:
+        is_admin = (
+            request.user.is_staff or 
+            request.user.is_superuser or 
+            getattr(getattr(request.user, 'profile', None), 'is_admin', False)
+        )
+    if doc.user_id is not None:
+        if not request.user.is_authenticated or (doc.user_id != request.user.id and not is_admin):
+            messages.error(request, "Access denied: You do not own this document.")
+            return redirect('dashboard')
 
     name = doc.original_name
     delete_document_from_index(doc)
@@ -518,15 +522,16 @@ def delete_document(request, document_id):
 
 @require_POST
 def ask_question(request):
-    if not request.user.is_authenticated:
-        return redirect(settings.LOGIN_URL)
-
     query = request.POST.get('question', '').strip()
     if not query:
         messages.warning(request, "Please enter a question.")
         return redirect('dashboard')
 
-    user_docs = Document.objects.filter(user=request.user, is_processed=True)
+    if request.user.is_authenticated:
+        user_docs = Document.objects.filter(models.Q(user=request.user) | models.Q(user__isnull=True), is_processed=True)
+    else:
+        user_docs = Document.objects.filter(is_processed=True)
+
     if not user_docs.exists():
         messages.warning(request, "Please upload at least one document before asking questions.")
         return redirect('dashboard')

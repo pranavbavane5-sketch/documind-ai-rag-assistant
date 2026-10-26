@@ -720,14 +720,10 @@
                 <a href="#authors" class="dm-nav-link">Creators</a>
             </nav>
 
-            <!-- Authentication Actions: Sign In & Create Account -->
-            <div class="d-flex align-items-center gap-2 gap-sm-3">
-                <a href="{% url 'account_login' %}" class="btn btn-sm btn-outline-secondary px-3 py-2 rounded-pill text-light fw-semibold d-inline-flex align-items-center gap-1" title="Sign In to DocuMind AI" id="navBtnSignIn">
-                    <i class="bi bi-box-arrow-in-right text-primary"></i>
-                    <span>Sign In</span>
-                </a>
-                <a href="{% url 'account_signup' %}" class="btn btn-sm btn-primary px-3 py-2 rounded-pill fw-bold d-inline-flex align-items-center gap-1" style="background: linear-gradient(135deg, #6366f1, #3b82f6); border: none;" title="Create Free Account" id="navBtnSignUp">
-                    <span>Sign Up</span>
+            <!-- Direct Action: Launch Studio -->
+            <div class="d-flex align-items-center gap-2">
+                <a href="{% url 'dashboard' %}" class="btn btn-sm btn-primary px-3 py-2 rounded-pill fw-bold d-inline-flex align-items-center gap-1" style="background: linear-gradient(135deg, #6366f1, #3b82f6); border: none;" id="navBtnLaunch" title="Launch Document Intelligence Studio">
+                    <span>Launch Studio</span>
                     <i class="bi bi-arrow-right-short fs-6"></i>
                 </a>
             </div>
@@ -766,9 +762,9 @@
                     <span>Explore DocuMind AI</span>
                     <i class="bi bi-arrow-right-circle-fill fs-5"></i>
                 </a>
-                <a href="{% url 'account_signup' %}" class="dm-btn-secondary-action" id="btnWelcomeGetStarted" title="Create Free Account and Get Started">
-                    <i class="bi bi-person-plus-fill text-primary"></i>
-                    <span>Get Started</span>
+                <a href="#features" class="dm-btn-secondary-action" id="btnExploreFeatures" title="Discover Intelligent Features">
+                    <i class="bi bi-stars text-primary"></i>
+                    <span>Discover Features</span>
                 </a>
             </div>
 
@@ -999,13 +995,9 @@
                     Open the document intelligence studio, upload your course documents, and start learning with intelligent grounded citations.
                 </p>
                 <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap">
-                    <a href="{% url 'dashboard' %}" class="dm-btn-explore">
+                    <a href="{% url 'dashboard' %}" class="dm-btn-explore" title="Open Studio">
                         <span>Explore DocuMind AI</span>
                         <i class="bi bi-arrow-right-circle-fill fs-5"></i>
-                    </a>
-                    <a href="{% url 'account_login' %}" class="dm-btn-secondary-action">
-                        <i class="bi bi-box-arrow-in-right text-primary"></i>
-                        <span>Sign In</span>
                     </a>
                 </div>
             </div>
@@ -1027,8 +1019,8 @@
 
             <div class="d-flex align-items-center gap-3">
                 <a href="#hero" class="text-decoration-none text-secondary hover-light small">Back to Top &uarr;</a>
-                <a href="{% url 'account_login' %}" class="text-decoration-none text-secondary hover-light small">Sign In</a>
-                <a href="{% url 'account_signup' %}" class="text-decoration-none text-secondary hover-light small">Sign Up</a>
+                <a href="#features" class="text-decoration-none text-secondary hover-light small">Features</a>
+                <a href="{% url 'dashboard' %}" class="text-decoration-none text-secondary hover-light small">Studio</a>
             </div>
         </div>
     </footer>
