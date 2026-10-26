@@ -331,19 +331,34 @@ class UnauthenticatedSecurityTests(TestCase):
         self.assertTrue(response.url.startswith('/?next=') or '/login' in response.url)
 
     def test_root_unauthenticated_displays_welcome_screen(self):
-        """Root URL ('/') displays the premium Welcome Screen with authors for unauthenticated visitors."""
+        """Root URL ('/') displays the polished public landing page for unauthenticated visitors."""
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "DocuMind")
-        self.assertContains(response, "Your documents. Your knowledge. One intelligent space.")
+        self.assertContains(response, "Your Documents. Your Knowledge. One Intelligent Space.")
         self.assertContains(response, "DESIGNED &amp; DEVELOPED BY")
         self.assertContains(response, "Pranav Bavane")
         self.assertContains(response, "Aditi Pikalmunde")
         self.assertContains(response, "AI &bull; RAG &bull; Smart Learning")
-        self.assertContains(response, "Get Started")
-        self.assertContains(response, "Create Account")
+        self.assertContains(response, "Explore DocuMind AI")
+        self.assertContains(response, "Document Q&amp;A")
+        self.assertContains(response, "Smart Summaries")
+        self.assertContains(response, "Source Citations")
+        self.assertContains(response, "Exam Preparation")
+        self.assertContains(response, "Sign In")
+        self.assertContains(response, "Sign Up")
         self.assertNotContains(response, 'id="navBtnAdmin"')
         self.assertNotContains(response, 'dm-btn-admin-nav')
+
+    def test_explore_button_points_to_protected_dashboard(self):
+        """Explore DocuMind AI button points to the dashboard which requires authentication for protected chat."""
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'href="/dashboard/"')
+        # Following /dashboard/ unauthenticated redirects to login
+        dash_response = self.client.get(reverse('dashboard'))
+        self.assertEqual(dash_response.status_code, 302)
+        self.assertTrue('/accounts/login/' in dash_response.url)
 
     def test_admin_nav_link_opens_django_admin(self):
         """Standard Django admin ('/admin/') remains active and opens Django's admin login page for unauthenticated visitors."""
